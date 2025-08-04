@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "rootDir": "src/main/typescript",
+    "outDir": "build/resources/main/static/js",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "target": "es6",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "useDefineForClassFields": false
+  }
+}
