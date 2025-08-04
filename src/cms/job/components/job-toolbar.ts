@@ -221,8 +221,14 @@ export class JobToolbar extends LitElement {
     }
 
     return html`
-      <link rel="stylesheet" href="/fontawesome/css/fontawesome.css">
-      <link rel="stylesheet" href="/fontawesome/css/solid.css">
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/fontawesome.min.css"
+            integrity="sha512-J2Gce+WmOttffHOrVKLTlzxIalPXUMDbSfn5ADqp8Vj9EngnjNHr+jjiL3ZB8muEzo+K51gU10X+0eGqGNL7QA=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"/>
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/solid.min.css"
+            integrity="sha512-SRwBRtvmT+LZLST1GBrRec8GROqtjKU1NK23RKSpdL6IRzn2xPeOfBYSeIlc/9iXYagKB5IX6MyKZF1nq4a1fw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"/>
       <div>
         <button id="runJob" ?disabled="${[1, 5].includes(this.lastJobExecutionStatus)}"
                 @click=${this.invokeJob}>

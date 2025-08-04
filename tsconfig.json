@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "rootDir": "src/main/typescript",
+    "rootDir": "src",
     "outDir": "build/resources/main/static/js",
     "module": "esnext",
     "moduleResolution": "node",

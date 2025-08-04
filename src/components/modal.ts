@@ -62,8 +62,14 @@ export default class CariModal extends LitElement {
 
   render() {
     return html`
-      <link rel="stylesheet" href="/fontawesome/css/fontawesome.css">
-      <link rel="stylesheet" href="/fontawesome/css/regular.css">
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/fontawesome.min.css"
+            integrity="sha512-J2Gce+WmOttffHOrVKLTlzxIalPXUMDbSfn5ADqp8Vj9EngnjNHr+jjiL3ZB8muEzo+K51gU10X+0eGqGNL7QA=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"/>
+      <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/regular.min.css"
+            integrity="sha512-wwQ/gaGbUFM5xDtqajxQCwISzM1GWLK1T3Ml4ZIIrQ3AciO7bDi9eRynkzdpXwiwGBmdpCgZqfVYeZu5UjVeCw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"/>
       <dialog id="cariModal" ?open=${this.open}>
         <div id="cariModalContent">
           <button @click=${this.close}>

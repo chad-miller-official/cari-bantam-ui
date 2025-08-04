@@ -1,10 +1,10 @@
 const path = require('path')
 const walkdir = require('walkdir')
 
-const entryNameReplacePrefix = new RegExp(`^${__dirname}\\/src\\/main\\/typescript\\/`)
+const entryNameReplacePrefix = new RegExp(`^${__dirname}\\/src\\/`)
 const entryValueReplacePrefix = new RegExp(`^${__dirname}\\/`)
 
-const entries = walkdir.sync(path.resolve(__dirname, 'src/main/typescript'))
+const entries = walkdir.sync(path.resolve(__dirname, 'src'))
   .filter(path => path.endsWith('.ts'))
   .reduce((acc, path) => {
     const entryName = path.replace(entryNameReplacePrefix, '')
@@ -35,8 +35,8 @@ module.exports = (env) => {
       ],
     },
     output: {
-      path: path.resolve(__dirname, 'build/resources/main/static/js'),
-      filename: '[name].js',
+      path: path.resolve(__dirname, 'build'),
+      filename: '[name].js'
     },
   }
 }
