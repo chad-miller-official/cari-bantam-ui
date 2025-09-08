@@ -115,7 +115,7 @@ export class GlossaryTermsList extends LitElement {
               termForLetter.querySelector('h3').textContent = glossaryTerm.term
 
               const termData = termForLetter.querySelector('dd')
-              termData.innerHTML = glossaryTerm.description
+              termData.innerHTML = `<p>${glossaryTerm.description}</p>`
 
               /* assets - References */
 
