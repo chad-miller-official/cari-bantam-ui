@@ -11,6 +11,7 @@ import ChangeEvent = JQuery.ChangeEvent;
 
 declare const apiEndpoint: string
 declare const jobExecution: number
+declare const totalPages: number
 
 enum EraBound {
   After = 1,
@@ -61,7 +62,7 @@ function validateAndBuildQueryParams(newPage: number): Record<string, any> {
   const decade = $('#decade')
 
   const params = {
-    asc: sortDirection.val() === 1,
+    asc: parseInt(sortDirection.val().toString()) === 1,
     sort: sortField.val(),
   }
 
@@ -85,7 +86,7 @@ function validateAndBuildQueryParams(newPage: number): Record<string, any> {
     const eraFilters = tuple[0] as JQuery
     const eraField = tuple[1] as EraField
 
-    const errorMessageElem = $(`${eraField}EraValidationMessage`)
+    const errorMessageElem = $(`#${eraField}EraValidationMessage`)
     errorMessageElem.text('')
 
     const eraBound = parseInt(eraFilters.find(`#${eraField}EraBound`).val().toString()) || 0 as EraBound
@@ -125,8 +126,12 @@ function validateAndBuildQueryParams(newPage: number): Record<string, any> {
   return params
 }
 
-function callApi(newPage: number) {
+function callApi(newPage: number, reset: boolean): Record<string, any> {
   let params: Record<string, any>
+
+  if (newPage >= totalPages) {
+    return
+  }
 
   try {
     params = validateAndBuildQueryParams(newPage)
@@ -153,13 +158,22 @@ function callApi(newPage: number) {
   }
 
   const aestheticListBlocks = $('#aestheticListBlocks')
-  aestheticListBlocks.append('cari-spinner')
+
+  const spinner = new CariSpinner()
+  spinner.id = 'spinner'
+  spinner.classList.add('span-all-columns')
+
+  if (reset) {
+    aestheticListBlocks.find('*').remove()
+  }
+
+  aestheticListBlocks.append(spinner)
 
   axios.get<Page<Aesthetic>>(apiEndpoint, options)
   .then((res: AxiosResponse<Page<Aesthetic>>) => {
     const pageData = res.data
 
-    aestheticListBlocks.remove('cari-spinner')
+    aestheticListBlocks.find('#spinner').remove()
 
     if (pageData.page.totalElements > 0) {
       const newBlocks = pageData.content.map(aesthetic => {
@@ -194,24 +208,29 @@ function callApi(newPage: number) {
       noResults.textContent = 'No results match your search criteria.'
       aestheticListBlocks.append(noResults)
     }
-
-    if (Object.keys(params)) {
-      const search = formatQueryParams(params)
-      let urlWithParams = window.location.pathname.concat(`?${search}`)
-      window.history.pushState(params, '', urlWithParams)
-    }
   })
   .catch(err => {
     const error = err.response.data
-    const errorMessageElem = this[`${(error.data.field as string).toLowerCase()}EraValidationMessage`]
-    errorMessageElem.textContent = error.message
-    errorMessageElem.style['visibility'] = 'visible'
+    const errorMessageElem = $(`#${(error.data.field).toLowerCase()}EraValidationMessage`)
+    errorMessageElem.text(error.message)
+    errorMessageElem.css('visibility', 'visible')
   })
+
+  return params
+}
+
+function updateQuery(params: Record<string, any>) {
+  if (Object.keys(params)) {
+    const search = formatQueryParams(params)
+    let urlWithParams = window.location.pathname.concat(`?${search}`)
+    window.history.pushState(params, '', urlWithParams)
+  }
 }
 
 function updateFilters(event: JQuery.Event) {
   event.preventDefault()
-  callApi(0)
+  const params = callApi(0, true)
+  updateQuery(params)
 }
 
 function resetFilters(event: JQuery.Event) {
@@ -226,31 +245,34 @@ function resetFilters(event: JQuery.Event) {
 
   keyword.val('');
 
-  [[startEraFilters[0], EraField.Start], [endEraFilters[0], EraField.End]].forEach(eraTuple => {
-    const eraFilters = eraTuple[0] as HTMLElement
-    const eraField = eraTuple[1];
+  [[startEraFilters, EraField.Start], [endEraFilters, EraField.End]].forEach(eraTuple => {
+    const eraFilters = eraTuple[0] as JQuery
+    const eraField = eraTuple[1] as EraField;
 
     [0, 1].forEach(idx => {
-      (eraFilters.querySelector(`#${eraField}EraSpecifier${idx}`) as HTMLSelectElement).value =
-          '0';
+      (eraFilters.find(`#${eraField}EraSpecifier${idx}`)).val('0');
 
-      const yearSelector = eraFilters.querySelector(`#${eraField}EraYear${idx}`) as HTMLSelectElement
-      yearSelector.value = '0'
-      yearSelector.disabled = true
+      const yearSelector = eraFilters.find(`#${eraField}EraYear${idx}`)
+      yearSelector.val('0')
+      yearSelector.prop('disabled', true)
     });
 
-    (eraFilters.querySelector(`#${eraField}EraBound`) as HTMLSelectElement).value =
-        EraBound.Between.toString();
+    eraFilters.find(`#${eraField}EraBound`).val(EraBound.Between.toString())
+    eraFilters.find('.between-end-range').css('visibility', 'visible')
 
-    (eraFilters.querySelector('.between-end-range') as HTMLElement).style['visibility'] =
-        'visible'
+    const validationMessage = $(`${eraField}EraValidationMessage`)
+    validationMessage.text('')
+    validationMessage.css('visibility', 'hidden')
   });
 
   decade.val('0')
   sortField.val(SortField.Name)
   sortDirection.val('1')
 
-  callApi(0)
+  currentPage = 0
+  const params = callApi(0, true)
+
+  updateQuery(params)
 }
 
 function handleEraBoundChange(event: ChangeEvent, betweenEndRangeContainer: JQuery) {
@@ -291,7 +313,7 @@ function handleSortFieldChange(event: ChangeEvent) {
 function onPageChanged() {
   if ($(window).scrollTop() + $(window).height() == $(document).height()) {
     currentPage++
-    callApi(currentPage)
+    callApi(currentPage, false)
   }
 }
 
