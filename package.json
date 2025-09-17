@@ -9,6 +9,7 @@
     "webpack": "5.94.0"
   },
   "devDependencies": {
+    "@types/jquery": "^3.5.33",
     "@types/qs": "^6.9.18",
     "@types/stompjs": "^2.3.9",
     "walkdir": "^0.4.1",
