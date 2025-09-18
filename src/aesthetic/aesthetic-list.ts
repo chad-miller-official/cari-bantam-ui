@@ -1,4 +1,3 @@
-import axios, {AxiosResponse} from 'axios'
 import {stringify} from 'qs'
 
 import {Aesthetic} from './types'
@@ -8,6 +7,7 @@ import {FormValidationError} from '../exception/exception'
 import {Page} from '../types'
 import {AestheticBlock} from "./components/aesthetic-block"
 import ChangeEvent = JQuery.ChangeEvent;
+import InfiniteScroll from "infinite-scroll";
 
 declare const apiEndpoint: string
 declare const jobExecution: number
@@ -44,7 +44,8 @@ const sort = INITIAL_PARAMS.get('sort')
 const asc = !INITIAL_PARAMS.has('asc') || INITIAL_PARAMS.get('asc') === 'true'
 
 let sortOrderLabel = SORT_ORDER_LABELS.get(INITIAL_PARAMS.get('sort') || SortField.Name)
-let currentPage = parseInt(INITIAL_PARAMS.get('page')) || 0
+
+let params: Record<string, any> = Object.fromEntries(INITIAL_PARAMS)
 
 function formatQueryParams(query: any): string {
   return stringify(query, {
@@ -53,7 +54,7 @@ function formatQueryParams(query: any): string {
   })
 }
 
-function validateAndBuildQueryParams(newPage: number): Record<string, any> {
+function validateAndBuildQueryParams() {
   const sortField = $('#sortField')
   const sortDirection = $('#sortDirection')
   const startEraFilters = $('#startEraFilter')
@@ -61,13 +62,9 @@ function validateAndBuildQueryParams(newPage: number): Record<string, any> {
   const keyword = $('#keyword')
   const decade = $('#decade')
 
-  const params = {
+  params = {
     asc: parseInt(sortDirection.val().toString()) === 1,
     sort: sortField.val(),
-  }
-
-  if (newPage !== 0) {
-    params['page'] = newPage
   }
 
   const keywordVal = keyword.val().toString()
@@ -123,18 +120,52 @@ function validateAndBuildQueryParams(newPage: number): Record<string, any> {
     }
   })
 
-  return params
-}
-
-function callApi(newPage: number, reset: boolean): Record<string, any> {
-  let params: Record<string, any>
-
-  if (newPage >= totalPages) {
-    return
+  if (jobExecution) {
+    params['job'] = jobExecution.toString()
   }
 
+  // TODO server-side year validation
+}
+
+function handleApiResponse(pageData: Page<Aesthetic>): HTMLElement[] {
+  if (pageData.page.totalElements > 0) {
+    return pageData.content.map(aesthetic => {
+      const aestheticBlock = new AestheticBlock()
+      aestheticBlock.urlSlug = aesthetic.urlSlug
+      aestheticBlock.displayImageUrl = aesthetic.displayImageUrl
+      aestheticBlock.name = aesthetic.name
+
+      if (aesthetic.startYear) {
+        aestheticBlock.startYear = aesthetic.startYear
+      }
+
+      if (aesthetic.endYear) {
+        aestheticBlock.endYear = aesthetic.endYear
+      }
+
+      if (aesthetic.isPreview) {
+        aestheticBlock.preview = true
+        aestheticBlock.jobExecution = jobExecution
+
+        if (aesthetic.importStatusLabel) {
+          aestheticBlock.classList.add(`${aesthetic.importStatusLabel.toLowerCase()}-object`, 'aesthetic-job-object')
+        }
+      }
+
+      return aestheticBlock
+    })
+  }
+
+  const noResults = $('h3')
+  noResults.text('No results match your search criteria.')
+  return noResults.get()
+}
+
+function updateFilters(event: JQuery.Event) {
+  event.preventDefault()
+
   try {
-    params = validateAndBuildQueryParams(newPage)
+    validateAndBuildQueryParams()
   } catch (ex) {
     if (ex instanceof FormValidationError) {
       const errorMessageElem = ex.getTarget()
@@ -148,131 +179,12 @@ function callApi(newPage: number, reset: boolean): Record<string, any> {
     return
   }
 
-  if (jobExecution) {
-    params['job'] = jobExecution.toString()
-  }
-
-  const options = {
-    params,
-    paramsSerializer: formatQueryParams
-  }
-
-  const aestheticListBlocks = $('#aestheticListBlocks')
-
-  const spinner = new CariSpinner()
-  spinner.id = 'spinner'
-  spinner.classList.add('span-all-columns')
-
-  if (reset) {
-    aestheticListBlocks.find('*').remove()
-  }
-
-  aestheticListBlocks.append(spinner)
-
-  axios.get<Page<Aesthetic>>(apiEndpoint, options)
-  .then((res: AxiosResponse<Page<Aesthetic>>) => {
-    const pageData = res.data
-
-    aestheticListBlocks.find('#spinner').remove()
-
-    if (pageData.page.totalElements > 0) {
-      const newBlocks = pageData.content.map(aesthetic => {
-        const aestheticBlock = new AestheticBlock()
-        aestheticBlock.urlSlug = aesthetic.urlSlug
-        aestheticBlock.displayImageUrl = aesthetic.displayImageUrl
-        aestheticBlock.name = aesthetic.name
-
-        if (aesthetic.startYear) {
-          aestheticBlock.startYear = aesthetic.startYear
-        }
-
-        if (aesthetic.endYear) {
-          aestheticBlock.endYear = aesthetic.endYear
-        }
-
-        if (aesthetic.isPreview) {
-          aestheticBlock.preview = true
-          aestheticBlock.jobExecution = jobExecution
-
-          if (aesthetic.importStatusLabel) {
-            aestheticBlock.classList.add(`${aesthetic.importStatusLabel.toLowerCase()}-object`, 'aesthetic-job-object')
-          }
-        }
-
-        return aestheticBlock
-      })
-
-      aestheticListBlocks.append(...newBlocks)
-    } else {
-      const noResults = document.createElement('h3')
-      noResults.textContent = 'No results match your search criteria.'
-      aestheticListBlocks.append(noResults)
-    }
-  })
-  .catch(err => {
-    const error = err.response.data
-    const errorMessageElem = $(`#${(error.data.field).toLowerCase()}EraValidationMessage`)
-    errorMessageElem.text(error.message)
-    errorMessageElem.css('visibility', 'visible')
-  })
-
-  return params
-}
-
-function updateQuery(params: Record<string, any>) {
-  if (Object.keys(params)) {
-    const search = formatQueryParams(params)
-    let urlWithParams = window.location.pathname.concat(`?${search}`)
-    window.history.pushState(params, '', urlWithParams)
-  }
-}
-
-function updateFilters(event: JQuery.Event) {
-  event.preventDefault()
-  const params = callApi(0, true)
-  updateQuery(params)
+  const query = formatQueryParams(params)
+  window.location.assign(`/aesthetics?${query}`)
 }
 
 function resetFilters(event: JQuery.Event) {
-  event.preventDefault()
-
-  const sortField = $('#sortField')
-  const sortDirection = $('#sortDirection')
-  const startEraFilters = $('#startEraFilter')
-  const endEraFilters = $('#endEraFilter')
-  const keyword = $('#keyword')
-  const decade = $('#decade')
-
-  keyword.val('');
-
-  [[startEraFilters, EraField.Start], [endEraFilters, EraField.End]].forEach(eraTuple => {
-    const eraFilters = eraTuple[0] as JQuery
-    const eraField = eraTuple[1] as EraField;
-
-    [0, 1].forEach(idx => {
-      (eraFilters.find(`#${eraField}EraSpecifier${idx}`)).val('0');
-
-      const yearSelector = eraFilters.find(`#${eraField}EraYear${idx}`)
-      yearSelector.val('0')
-      yearSelector.prop('disabled', true)
-    });
-
-    eraFilters.find(`#${eraField}EraBound`).val(EraBound.Between.toString())
-    eraFilters.find('.between-end-range').css('visibility', 'visible')
-
-    const validationMessage = $(`${eraField}EraValidationMessage`)
-    validationMessage.text('')
-    validationMessage.css('visibility', 'hidden')
-  });
-
-  decade.val('0')
-  sortField.val(SortField.Name)
-  sortDirection.val('1')
-
-  currentPage = 0
-  const params = callApi(0, true)
-
-  updateQuery(params)
+  window.location.assign('/aesthetics')
 }
 
 function handleEraBoundChange(event: ChangeEvent, betweenEndRangeContainer: JQuery) {
@@ -310,13 +222,6 @@ function handleSortFieldChange(event: ChangeEvent) {
   sortOrderLabel = SORT_ORDER_LABELS.get(event.target.value || SortField.Name)
 }
 
-function onPageChanged() {
-  if ($(window).scrollTop() + $(window).height() == $(document).height()) {
-    currentPage++
-    callApi(currentPage, false)
-  }
-}
-
 $(() => {
   const filters = $('#aestheticListFilters')
 
@@ -339,7 +244,30 @@ $(() => {
   $('#sortDirection > option[value=1]').text(sortOrderLabel[0])
   $('#sortDirection > option[value=0]').text(sortOrderLabel[1])
 
-  $(window).on('scroll', onPageChanged)
+  const aestheticListBlocks = $('#aestheticListBlocks')
+
+  aestheticListBlocks.infiniteScroll({
+    path: () => {
+      const infScroll = InfiniteScroll.data('#aestheticListBlocks')
+
+      if (infScroll.pageIndex <= totalPages) {
+        const options = {
+          ...params,
+          page: infScroll.pageIndex,
+        }
+
+        const query = formatQueryParams(options)
+        return `${apiEndpoint}?${query}`
+      }
+    },
+    responseBody: 'json',
+    history: false,
+  });
+
+  aestheticListBlocks.on('load.infiniteScroll', (event, data: Page<Aesthetic>) => {
+    const blocks = handleApiResponse(data)
+    aestheticListBlocks.infiniteScroll('appendItems', blocks)
+  })
 })
 
 export {AestheticBlock, CariPaginator, CariSpinner}
