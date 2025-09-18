@@ -8,6 +8,7 @@ import {Page} from '../types'
 import {AestheticBlock} from "./components/aesthetic-block"
 import ChangeEvent = JQuery.ChangeEvent;
 import InfiniteScroll from "infinite-scroll";
+import axios, {AxiosResponse} from "axios";
 
 declare const apiEndpoint: string
 declare const jobExecution: number
@@ -124,7 +125,21 @@ function validateAndBuildQueryParams() {
     params['job'] = jobExecution.toString()
   }
 
-  // TODO server-side year validation
+  let serverSideError: FormValidationError = null
+
+  $.ajax(`${apiEndpoint}/validate-query`, {
+    async: false,
+    data: formatQueryParams(params),
+    error: (jqXHR, textStatus, errorThrown) => {
+      const error = jqXHR.responseJSON
+      const errorMessageElem = $(`#${error.data.field.toLowerCase()}EraValidationMessage`)
+      serverSideError = new FormValidationError(errorMessageElem.get()[0], error.message)
+    }
+  })
+
+  if (serverSideError) {
+    throw serverSideError
+  }
 }
 
 function handleApiResponse(pageData: Page<Aesthetic>): HTMLElement[] {
@@ -161,11 +176,11 @@ function handleApiResponse(pageData: Page<Aesthetic>): HTMLElement[] {
   return noResults.get()
 }
 
-function updateFilters(event: JQuery.Event) {
+async function updateFilters(event: JQuery.Event) {
   event.preventDefault()
 
   try {
-    validateAndBuildQueryParams()
+    await validateAndBuildQueryParams()
   } catch (ex) {
     if (ex instanceof FormValidationError) {
       const errorMessageElem = ex.getTarget()
