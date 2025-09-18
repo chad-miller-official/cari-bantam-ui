@@ -176,11 +176,11 @@ function handleApiResponse(pageData: Page<Aesthetic>): HTMLElement[] {
   return noResults.get()
 }
 
-async function updateFilters(event: JQuery.Event) {
+function updateFilters(event: JQuery.Event) {
   event.preventDefault()
 
   try {
-    await validateAndBuildQueryParams()
+    validateAndBuildQueryParams()
   } catch (ex) {
     if (ex instanceof FormValidationError) {
       const errorMessageElem = ex.getTarget()
