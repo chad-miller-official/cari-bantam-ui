@@ -6,9 +6,8 @@ import CariSpinner from '../components/spinner'
 import {FormValidationError} from '../exception/exception'
 import {Page} from '../types'
 import {AestheticBlock} from "./components/aesthetic-block"
-import ChangeEvent = JQuery.ChangeEvent;
 import InfiniteScroll from "infinite-scroll";
-import axios, {AxiosResponse} from "axios";
+import ChangeEvent = JQuery.ChangeEvent;
 
 declare const apiEndpoint: string
 declare const jobExecution: number
@@ -45,7 +44,6 @@ const sort = INITIAL_PARAMS.get('sort')
 const asc = !INITIAL_PARAMS.has('asc') || INITIAL_PARAMS.get('asc') === 'true'
 
 let sortOrderLabel = SORT_ORDER_LABELS.get(INITIAL_PARAMS.get('sort') || SortField.Name)
-
 let params: Record<string, any> = Object.fromEntries(INITIAL_PARAMS)
 
 function formatQueryParams(query: any): string {
@@ -233,8 +231,14 @@ function setupEraFilter(eraFilter: JQuery, eraField: EraField) {
   })
 }
 
+function resetSortOrderLabels() {
+  $('#sortDirection > option[value=1]').text(sortOrderLabel[0])
+  $('#sortDirection > option[value=0]').text(sortOrderLabel[1])
+}
+
 function handleSortFieldChange(event: ChangeEvent) {
   sortOrderLabel = SORT_ORDER_LABELS.get(event.target.value || SortField.Name)
+  resetSortOrderLabels()
 }
 
 $(() => {
@@ -253,11 +257,9 @@ $(() => {
 
   $('#sortField').on('change', handleSortFieldChange)
   $(`#sortField > option[value=${sort}]`).prop('selected', true)
-
   $(`#sortDirection > option[value=${asc ? 1 : 0}]`).prop('selected', true)
 
-  $('#sortDirection > option[value=1]').text(sortOrderLabel[0])
-  $('#sortDirection > option[value=0]').text(sortOrderLabel[1])
+  resetSortOrderLabels()
 
   const aestheticListBlocks = $('#aestheticListBlocks')
 
