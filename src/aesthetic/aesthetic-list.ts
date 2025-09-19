@@ -193,11 +193,17 @@ function updateFilters(event: JQuery.Event) {
   }
 
   const query = formatQueryParams(params)
-  window.location.assign(`/aesthetics?${query}`)
+  window.location.assign(`${window.location.pathname}?${query}`)
 }
 
 function resetFilters(event: JQuery.Event) {
-  window.location.assign('/aesthetics')
+  let redirectTo = window.location.pathname
+
+  if (jobExecution) {
+    redirectTo += `?job=${jobExecution}`
+  }
+
+  window.location.assign(redirectTo)
 }
 
 function handleEraBoundChange(event: ChangeEvent, betweenEndRangeContainer: JQuery) {
