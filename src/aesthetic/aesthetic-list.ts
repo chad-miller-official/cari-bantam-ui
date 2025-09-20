@@ -44,7 +44,6 @@ const sort = INITIAL_PARAMS.get('sort')
 const asc = !INITIAL_PARAMS.has('asc') || INITIAL_PARAMS.get('asc') === 'true'
 
 let sortOrderLabel = SORT_ORDER_LABELS.get(INITIAL_PARAMS.get('sort') || SortField.Name)
-let params: Record<string, any> = Object.fromEntries(INITIAL_PARAMS)
 
 function formatQueryParams(query: any): string {
   return stringify(query, {
@@ -61,7 +60,7 @@ function validateAndBuildQueryParams() {
   const keyword = $('#keyword')
   const decade = $('#decade')
 
-  params = {
+  const params = {
     asc: parseInt(sortDirection.val().toString()) === 1,
     sort: sortField.val(),
   }
@@ -128,7 +127,7 @@ function validateAndBuildQueryParams() {
   $.ajax(`${apiEndpoint}/validate-query`, {
     async: false,
     data: formatQueryParams(params),
-    error: (jqXHR, textStatus, errorThrown) => {
+    error: jqXHR => {
       const error = jqXHR.responseJSON
       const errorMessageElem = $(`#${error.data.field.toLowerCase()}EraValidationMessage`)
       serverSideError = new FormValidationError(errorMessageElem.get()[0], error.message)
@@ -138,47 +137,17 @@ function validateAndBuildQueryParams() {
   if (serverSideError) {
     throw serverSideError
   }
-}
 
-function handleApiResponse(pageData: Page<Aesthetic>): HTMLElement[] {
-  if (pageData.page.totalElements > 0) {
-    return pageData.content.map(aesthetic => {
-      const aestheticBlock = new AestheticBlock()
-      aestheticBlock.urlSlug = aesthetic.urlSlug
-      aestheticBlock.displayImageUrl = aesthetic.displayImageUrl
-      aestheticBlock.name = aesthetic.name
-
-      if (aesthetic.startYear) {
-        aestheticBlock.startYear = aesthetic.startYear
-      }
-
-      if (aesthetic.endYear) {
-        aestheticBlock.endYear = aesthetic.endYear
-      }
-
-      if (aesthetic.isPreview) {
-        aestheticBlock.preview = true
-        aestheticBlock.jobExecution = jobExecution
-
-        if (aesthetic.importStatusLabel) {
-          aestheticBlock.classList.add(`${aesthetic.importStatusLabel.toLowerCase()}-object`, 'aesthetic-job-object')
-        }
-      }
-
-      return aestheticBlock
-    })
-  }
-
-  const noResults = $('h3')
-  noResults.text('No results match your search criteria.')
-  return noResults.get()
+  return params
 }
 
 function updateFilters(event: JQuery.Event) {
   event.preventDefault()
 
+  let params: Record<string, any>
+
   try {
-    validateAndBuildQueryParams()
+    params = validateAndBuildQueryParams()
   } catch (ex) {
     if (ex instanceof FormValidationError) {
       const errorMessageElem = ex.getTarget()
@@ -206,9 +175,82 @@ function resetFilters(event: JQuery.Event) {
   window.location.assign(redirectTo)
 }
 
-function handleEraBoundChange(event: ChangeEvent, betweenEndRangeContainer: JQuery) {
-  const value = parseInt((event.target as HTMLOptionElement).value)
-  betweenEndRangeContainer.css('visibility', value === EraBound.Between ? 'visible' : 'hidden')
+function resetSortOrderLabels() {
+  $('#sortDirection > option[value=1]').text(sortOrderLabel[0])
+  $('#sortDirection > option[value=0]').text(sortOrderLabel[1])
+}
+
+function handleSortFieldChange(event: ChangeEvent) {
+  sortOrderLabel = SORT_ORDER_LABELS.get(event.target.value || SortField.Name)
+  resetSortOrderLabels()
+}
+
+function createAestheticBlock(aesthetic: Aesthetic) {
+  const aestheticBlock = new AestheticBlock()
+  aestheticBlock.urlSlug = aesthetic.urlSlug
+  aestheticBlock.displayImageUrl = aesthetic.displayImageUrl
+  aestheticBlock.name = aesthetic.name
+
+  if (aesthetic.startYear) {
+    aestheticBlock.startYear = aesthetic.startYear
+  }
+
+  if (aesthetic.endYear) {
+    aestheticBlock.endYear = aesthetic.endYear
+  }
+
+  if (aesthetic.isPreview) {
+    aestheticBlock.preview = true
+    aestheticBlock.jobExecution = jobExecution
+
+    if (aesthetic.importStatusLabel) {
+      aestheticBlock.classList.add(`${aesthetic.importStatusLabel.toLowerCase()}-object`, 'aesthetic-job-object')
+    }
+  }
+
+  return aestheticBlock
+}
+
+function handleApiResponse(pageData: Page<Map<string, Aesthetic[]>>): JQuery[] {
+  if (pageData.page.totalElements > 0) {
+    const groupMap = pageData.content[0]
+    const groupKeys = Object.keys(groupMap)
+
+    const firstKey = groupKeys[0]
+    const remainingKeys = groupKeys.slice(1)
+
+    const lastKeyHeader = $('#aestheticListContainer > h1:last-of-type')
+    let newGroups: JQuery[] = []
+
+    if (firstKey === lastKeyHeader.text()) {
+      const aestheticBlocks = groupMap[firstKey].map(createAestheticBlock)
+      $('#aestheticListContainer > .aesthetic-list-blocks:last-of-type').append(...aestheticBlocks) // FIXME XXX side effect
+    } else {
+      const header = $('<h1>').text(firstKey)
+
+      const aestheticBlocksGrid = $('<div>', {"class": "aesthetic-list-blocks"})
+      const aestheticBlocks = groupMap[firstKey].map(createAestheticBlock)
+
+      aestheticBlocksGrid.append(...aestheticBlocks)
+      newGroups.push(header, $('<hr>'), aestheticBlocksGrid)
+    }
+
+    remainingKeys.forEach(key => {
+      const header = $('<h1>').text(key)
+
+      const aestheticBlocksGrid = $('<div>', {"class": "aesthetic-list-blocks"})
+      const aestheticBlocks = groupMap[key].map(createAestheticBlock)
+
+      aestheticBlocksGrid.append(...aestheticBlocks)
+      newGroups.push(header, $('<hr>'), aestheticBlocksGrid)
+    })
+
+    return newGroups
+  }
+
+  const noResults = $('h3')
+  noResults.text('No results match your search criteria.')
+  return [noResults]
 }
 
 function handleEraSpecifierChange(event: ChangeEvent, yearSelector: JQuery) {
@@ -222,7 +264,14 @@ function handleEraSpecifierChange(event: ChangeEvent, yearSelector: JQuery) {
   }
 }
 
-function setupEraFilter(eraFilter: JQuery, eraField: EraField) {
+function handleEraBoundChange(event: ChangeEvent, betweenEndRangeContainer: JQuery) {
+  const value = parseInt((event.target as HTMLOptionElement).value)
+  betweenEndRangeContainer.css('visibility', value === EraBound.Between ? 'visible' : 'hidden')
+}
+
+function setupEraFilter(eraField: EraField) {
+  const eraFilter = $(`#${eraField}EraFilter`);
+
   [0, 1].forEach(idx => {
     eraFilter.find(`#${eraField}EraSpecifier${idx}`)
     .on('change', event => {
@@ -237,16 +286,6 @@ function setupEraFilter(eraFilter: JQuery, eraField: EraField) {
   })
 }
 
-function resetSortOrderLabels() {
-  $('#sortDirection > option[value=1]').text(sortOrderLabel[0])
-  $('#sortDirection > option[value=0]').text(sortOrderLabel[1])
-}
-
-function handleSortFieldChange(event: ChangeEvent) {
-  sortOrderLabel = SORT_ORDER_LABELS.get(event.target.value || SortField.Name)
-  resetSortOrderLabels()
-}
-
 $(() => {
   const filters = $('#aestheticListFilters')
 
@@ -255,11 +294,8 @@ $(() => {
 
   $('#keyword').val(INITIAL_PARAMS.get('keyword'))
 
-  const startEraFilters = $('#startEraFilter')
-  const endEraFilters = $('#endEraFilter')
-
-  setupEraFilter(startEraFilters, EraField.Start)
-  setupEraFilter(endEraFilters, EraField.End)
+  setupEraFilter(EraField.Start)
+  setupEraFilter(EraField.End)
 
   $('#sortField').on('change', handleSortFieldChange)
   $(`#sortField > option[value=${sort}]`).prop('selected', true)
@@ -267,11 +303,12 @@ $(() => {
 
   resetSortOrderLabels()
 
-  const aestheticListBlocks = $('#aestheticListBlocks')
+  const aestheticListContainer = $('#aestheticListContainer')
 
-  aestheticListBlocks.infiniteScroll({
+  const infScroll = new InfiniteScroll(aestheticListContainer.get()[0], {
     path: () => {
-      const infScroll = InfiniteScroll.data('#aestheticListBlocks')
+      const infScroll = InfiniteScroll.data('#aestheticListContainer')
+      const params = validateAndBuildQueryParams()
 
       if (infScroll.pageIndex <= totalPages) {
         const options = {
@@ -285,11 +322,11 @@ $(() => {
     },
     responseBody: 'json',
     history: false,
-  });
+  })
 
-  aestheticListBlocks.on('load.infiniteScroll', (event, data: Page<Aesthetic>) => {
+  infScroll.on('load', (data: Page<Map<string, Aesthetic[]>>) => {
     const blocks = handleApiResponse(data)
-    aestheticListBlocks.infiniteScroll('appendItems', blocks)
+    aestheticListContainer.append(...blocks)
   })
 })
 
