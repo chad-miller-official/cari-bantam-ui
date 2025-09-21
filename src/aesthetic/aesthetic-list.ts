@@ -278,9 +278,9 @@ function setupEraFilter(eraField: EraField) {
   const eraFilter = $(`#${eraField}EraFilter`);
 
   [0, 1].forEach(idx => {
-    eraFilter.children(`#${eraField}EraSpecifier${idx}`).first()
+    eraFilter.find(`#${eraField}EraSpecifier${idx}`).first()
     .on('change', event => {
-      const yearSelector = eraFilter.children(`#${eraField}EraYear${idx}`).first()
+      const yearSelector = eraFilter.find(`#${eraField}EraYear${idx}`).first()
       handleEraSpecifierChange(event, yearSelector)
     })
   })
