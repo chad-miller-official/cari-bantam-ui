@@ -84,11 +84,13 @@ function validateAndBuildQueryParams() {
     const errorMessageElem = $(`#${eraField}EraValidationMessage`)
     errorMessageElem.text('')
 
-    const eraBound = parseInt(eraFilters.find(`#${eraField}EraBound`).val().toString()) || 0 as EraBound
-    const eraSpecifier0 = parseInt(eraFilters.find(`#${eraField}EraSpecifier0`).val().toString()) || 0
-    const eraSpecifier1 = parseInt(eraFilters.find(`#${eraField}EraSpecifier1`).val().toString()) || 0
-    const eraYear0 = parseInt(eraFilters.find(`#${eraField}EraYear0`).val().toString()) || 0
-    const eraYear1 = parseInt(eraFilters.find(`#${eraField}EraYear1`).val().toString()) || 0
+    const eraBound = parseInt(eraFilters.children(`#${eraField}EraBound`).first().val().toString()) || 0 as EraBound
+    const eraSpecifier0 = parseInt(eraFilters.children(`#${eraField}EraSpecifier0`).first().val().toString()) || 0
+    const eraYear0 = parseInt(eraFilters.children(`#${eraField}EraYear0`).first().val().toString()) || 0
+
+    const endRange = eraFilters.children('.between-end-range').first()
+    const eraSpecifier1 = parseInt(endRange.children(`#${eraField}EraSpecifier1`).first().val().toString()) || 0
+    const eraYear1 = parseInt(endRange.children(`#${eraField}EraYear1`).first().val().toString()) || 0
 
     if (eraBound && eraYear0) {
       const eraParams = [{
@@ -234,12 +236,14 @@ function handleApiResponse(pageData: Page<Map<string, Aesthetic[]>>) {
     const firstKey = groupKeys[0]
     const remainingKeys = groupKeys.slice(1)
 
-    const lastKeyHeader = aestheticListContainer.find("h1:last-of-type")
+    const lastKeyHeader = aestheticListContainer.children(".aesthetic-list-blocks-header").last()
+    const lastKey = lastKeyHeader.children('h1').first().text()
+
     let newGroups: JQuery[] = []
 
-    if (firstKey === lastKeyHeader.text()) {
+    if (firstKey === lastKey) {
       const aestheticBlocks = groupMap[firstKey].map(createAestheticBlock)
-      aestheticListContainer.find(".aesthetic-list-blocks:last-of-type").append(...aestheticBlocks)
+      aestheticListContainer.children(".aesthetic-list-blocks").last().append(...aestheticBlocks)
     } else {
       const [header, aestheticBlocksGrid] = buildAestheticBlocks(firstKey, groupMap[firstKey])
       newGroups.push(header, aestheticBlocksGrid)
@@ -274,15 +278,15 @@ function setupEraFilter(eraField: EraField) {
   const eraFilter = $(`#${eraField}EraFilter`);
 
   [0, 1].forEach(idx => {
-    eraFilter.find(`#${eraField}EraSpecifier${idx}`)
+    eraFilter.children(`#${eraField}EraSpecifier${idx}`).first()
     .on('change', event => {
-      const yearSelector = eraFilter.find(`#${eraField}EraYear${idx}`)
+      const yearSelector = eraFilter.children(`#${eraField}EraYear${idx}`).first()
       handleEraSpecifierChange(event, yearSelector)
     })
   })
 
-  eraFilter.find(`#${eraField}EraBound`).on('change', event => {
-    const betweenEndRangeContainer = eraFilter.find('.between-end-range')
+  eraFilter.children(`#${eraField}EraBound`).first().on('change', event => {
+    const betweenEndRangeContainer = eraFilter.children('.between-end-range').first()
     handleEraBoundChange(event, betweenEndRangeContainer)
   })
 }
