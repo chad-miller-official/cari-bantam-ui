@@ -211,7 +211,22 @@ function createAestheticBlock(aesthetic: Aesthetic) {
   return aestheticBlock
 }
 
-function handleApiResponse(pageData: Page<Map<string, Aesthetic[]>>): JQuery[] {
+function buildAestheticBlocks(key: string, aesthetics: Aesthetic[]): JQuery[] {
+  const header = $('<div>', {"class": "aesthetic-list-blocks-header"})
+  const headerLabel = $('<h1>').text(key)
+
+  header.append(headerLabel, $('<hr>'))
+
+  const aestheticBlocksGrid = $('<div>', {"class": "aesthetic-list-blocks"})
+  const aestheticBlocks = aesthetics.map(createAestheticBlock)
+
+  aestheticBlocksGrid.append(...aestheticBlocks)
+  return [header, aestheticBlocksGrid]
+}
+
+function handleApiResponse(pageData: Page<Map<string, Aesthetic[]>>) {
+  const aestheticListContainer = $('#aestheticListContainer')
+
   if (pageData.page.totalElements > 0) {
     const groupMap = pageData.content[0]
     const groupKeys = Object.keys(groupMap)
@@ -219,38 +234,24 @@ function handleApiResponse(pageData: Page<Map<string, Aesthetic[]>>): JQuery[] {
     const firstKey = groupKeys[0]
     const remainingKeys = groupKeys.slice(1)
 
-    const lastKeyHeader = $('#aestheticListContainer > h1:last-of-type')
+    const lastKeyHeader = aestheticListContainer.find("h1:last-of-type")
     let newGroups: JQuery[] = []
 
     if (firstKey === lastKeyHeader.text()) {
       const aestheticBlocks = groupMap[firstKey].map(createAestheticBlock)
-      $('#aestheticListContainer > .aesthetic-list-blocks:last-of-type').append(...aestheticBlocks) // FIXME XXX side effect
+      aestheticListContainer.find(".aesthetic-list-blocks:last-of-type").append(...aestheticBlocks)
     } else {
-      const header = $('<h1>').text(firstKey)
-
-      const aestheticBlocksGrid = $('<div>', {"class": "aesthetic-list-blocks"})
-      const aestheticBlocks = groupMap[firstKey].map(createAestheticBlock)
-
-      aestheticBlocksGrid.append(...aestheticBlocks)
-      newGroups.push(header, $('<hr>'), aestheticBlocksGrid)
+      const [header, aestheticBlocksGrid] = buildAestheticBlocks(firstKey, groupMap[firstKey])
+      newGroups.push(header, aestheticBlocksGrid)
     }
 
     remainingKeys.forEach(key => {
-      const header = $('<h1>').text(key)
-
-      const aestheticBlocksGrid = $('<div>', {"class": "aesthetic-list-blocks"})
-      const aestheticBlocks = groupMap[key].map(createAestheticBlock)
-
-      aestheticBlocksGrid.append(...aestheticBlocks)
-      newGroups.push(header, $('<hr>'), aestheticBlocksGrid)
+      const [header, aestheticBlocksGrid] = buildAestheticBlocks(key, groupMap[key])
+      newGroups.push(header, aestheticBlocksGrid)
     })
 
-    return newGroups
+    aestheticListContainer.append(...newGroups)
   }
-
-  const noResults = $('h3')
-  noResults.text('No results match your search criteria.')
-  return [noResults]
 }
 
 function handleEraSpecifierChange(event: ChangeEvent, yearSelector: JQuery) {
@@ -324,10 +325,7 @@ $(() => {
     history: false,
   })
 
-  infScroll.on('load', (data: Page<Map<string, Aesthetic[]>>) => {
-    const blocks = handleApiResponse(data)
-    aestheticListContainer.append(...blocks)
-  })
+  infScroll.on('load', handleApiResponse)
 })
 
 export {AestheticBlock, CariPaginator, CariSpinner}
