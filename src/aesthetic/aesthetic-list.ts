@@ -124,20 +124,24 @@ function validateAndBuildQueryParams() {
     params['job'] = jobExecution.toString()
   }
 
-  let serverSideError: FormValidationError = null
+  if (("startEra" in params && "endEra" in params)
+      || ("startEra" in params && params['startEra']['boundType'] == EraBound.Between)
+      || ("endEra" in params && params['endEra']['boundType'] == EraBound.Between)) {
+    let serverSideError: FormValidationError = null
 
-  $.ajax(`${apiEndpoint}/validate-query`, {
-    async: false,
-    data: formatQueryParams(params),
-    error: jqXHR => {
-      const error = jqXHR.responseJSON
-      const errorMessageElem = $(`#${error.data.field.toLowerCase()}EraValidationMessage`)
-      serverSideError = new FormValidationError(errorMessageElem.get()[0], error.message)
+    $.ajax(`${apiEndpoint}/validate-query`, {
+      async: false,
+      data: formatQueryParams(params),
+      error: jqXHR => {
+        const error = jqXHR.responseJSON
+        const errorMessageElem = $(`#${error.data.field.toLowerCase()}EraValidationMessage`)
+        serverSideError = new FormValidationError(errorMessageElem.get()[0], error.message)
+      }
+    })
+
+    if (serverSideError) {
+      throw serverSideError
     }
-  })
-
-  if (serverSideError) {
-    throw serverSideError
   }
 
   return params
