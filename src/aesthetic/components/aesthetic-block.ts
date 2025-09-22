@@ -110,7 +110,7 @@ export class AestheticBlock extends LitElement {
   preview: boolean
 
   @property()
-  jobExecution: number
+  jobExecution?: number
 
   render() {
     const bg = styleMap({backgroundImage: `url(${this.displayImageUrl})`})
