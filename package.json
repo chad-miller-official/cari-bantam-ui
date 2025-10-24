@@ -5,6 +5,7 @@
     "infinite-scroll": "^5.0.0",
     "lit": "^2.8.0",
     "qs": "^6.14.0",
+    "quill": "^2.0.3",
     "ts-loader": "^9.4.4",
     "typescript": "^5.1.6",
     "webpack": "5.94.0"
