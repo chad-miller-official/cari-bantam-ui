@@ -1,14 +1,8 @@
 import Quill from 'quill'
 import {ArticlePreview} from "../../articles/components/article-preview";
 
-const DATE_TIME_FORMAT = new Intl.DateTimeFormat(navigator.language, {
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-})
-
 $(() => {
-  const toolbar = [
+  const mainToolbar = [
     [{'font': []}, {'header': []}],
     ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
     [{'align': []}, {'indent': '-1'}, {'indent': '+1'}, {'list': 'ordered'}, {'list': 'bullet'}, {'list': 'check'}],
@@ -16,38 +10,86 @@ $(() => {
     ['clean'],
   ]
 
-  new Quill('#editor', {
+  const mainEditor = new Quill('#mainEditor', {
     modules: {
-      toolbar,
+      toolbar: mainToolbar,
     },
     placeholder: 'Start writing...',
     theme: 'snow',
   })
 
+  const summaryToolbar = [
+    ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
+    ['clean'],
+  ]
+
+  const summaryEditor = new Quill('#summaryEditor', {
+    modules: {
+      toolbar: summaryToolbar,
+    },
+    placeholder: 'Write a few sentences explaining what the article is about.',
+    theme: 'snow',
+  })
+
+  const articlePreview = $('#articlePreview').get()[0] as ArticlePreview
+
+  $('#title').on('change', function () {
+    articlePreview.title = $(this).val() as string
+  })
+
+  summaryEditor.on('text-change', () => {
+    articlePreview.innerHTML = summaryEditor.getSemanticHTML()
+  })
+
   $('#previewImage').on('change', function () {
-    const hasFile = (this as HTMLInputElement).files.length > 0
-    $('#previewContainer').css('display', hasFile ? 'block' : 'none')
+    const files = (this as HTMLInputElement).files
+    articlePreview.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
+  })
 
-    const preview = $('#preview')
-    preview.empty()
+  $('#textColor').on('change', function () {
+    articlePreview.textColor = $(this).val() as string
+  })
 
-    if (hasFile) {
-      const articlePreview = new ArticlePreview()
+  const author = $('#author')
 
-      articlePreview.title = $('#title').val() as string
-      articlePreview.author = $('#author').val() as string
-      articlePreview.url = '#'
-      articlePreview.published = DATE_TIME_FORMAT.format(new Date())
-      articlePreview.previewImageUrl = URL.createObjectURL((this as HTMLInputElement).files[0])
-      articlePreview.textContent = $('#summary').val() as string
+  author.on('change', function () {
+    articlePreview.author = $(this).text()
+  })
 
-      const textColor = $('#textColor').val()
+  const published = $('#published')
 
-      if (textColor) {
-        articlePreview.textColor = textColor as string
-      }
+  published.on('change', function () {
+    const selectedDate = (this as HTMLInputElement).valueAsDate
+    const year = selectedDate.getUTCFullYear()
+    const month = selectedDate.getUTCMonth()
+    const day = selectedDate.getUTCDate()
 
-      preview.append(articlePreview)
+    const dateTimeFormat = new Intl.DateTimeFormat(navigator.language, {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    })
+
+    articlePreview.published = dateTimeFormat.format(new Date(year, month, day))
+  })
+
+  $('#publisherOverride').on('change', function () {
+    const isChecked = $(this).prop('checked')
+
+    author.prop('disabled', !isChecked)
+    published.prop('disabled', !isChecked)
+
+    const authorLabel = $('label[for=author]')
+    const publishedLabel = $('label[for=published]')
+
+    if (isChecked) {
+      authorLabel.removeClass('disabled-label')
+      publishedLabel.removeClass('disabled-label')
+    } else {
+      authorLabel.addClass('disabled-label')
+      publishedLabel.addClass('disabled-label')
     }
   })
 })
+
+export {ArticlePreview}

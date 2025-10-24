@@ -2,6 +2,12 @@ import {css, html, LitElement} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {styleMap} from "lit/directives/style-map.js";
 
+const DATE_TIME_FORMAT = new Intl.DateTimeFormat(navigator.language, {
+  month: 'long',
+  day: 'numeric',
+  year: 'numeric',
+})
+
 @customElement('article-preview')
 export class ArticlePreview extends LitElement {
 
@@ -31,48 +37,48 @@ export class ArticlePreview extends LitElement {
   `
 
   @property()
-  title: string
+  title: string = '(no title)'
 
   @property()
-  author: string
+  author: string = '(unknown)'
 
   @property()
-  url: string
+  url: string = '#'
 
   @property()
-  published: string
+  published: string = DATE_TIME_FORMAT.format(new Date())
 
   @property()
-  previewImageUrl: string
+  previewImageUrl?: string
 
   @property()
-  textColor: string = '#FFFFFF'
+  textColor: string = '#000000'
 
   render() {
     const textColor = styleMap({color: `${this.textColor} !important`})
+    let styles = {color: this.textColor}
 
-    const bg = styleMap({
-      backgroundImage: `url(${this.previewImageUrl})`,
-      color: this.textColor,
-    })
+    if (this.previewImageUrl) {
+      styles['backgroundImage'] = `url(${this.previewImageUrl})`
+    } else {
+      styles['border'] = 'solid 1px black';
+    }
 
     const authorSlug = this.author.toLowerCase().replace(/\s+/g, '-')
 
     return html`
-      <div class="article" style="${bg}">
+      <div class="article" style="${styleMap(styles)}">
         <h2>
-          <a href="${this.url}" style="${textColor}" target="_blank">
+          <a href="${this.url}" style="${textColor}">
             ${this.title}
           </a>
         </h2>
         <h3 class="article-author">
           by
-          <a href="/team#${authorSlug}" style="${textColor}" target="_blank">${this.author}</a>
+          <a href="/team#${authorSlug}" style="${textColor}">${this.author}</a>
           // ${this.published}
         </h3>
-        <p>
-          <slot></slot>
-        </p>
+        <slot></slot>
       </div>
     `
   }
