@@ -1,37 +1,36 @@
 import Quill from 'quill'
 import {ArticlePreview} from "../../articles/components/article-preview";
 
-$(() => {
-  const mainToolbar = [
-    [{'font': []}, {'header': []}],
-    ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
-    [{'align': []}, {'indent': '-1'}, {'indent': '+1'}, {'list': 'ordered'}, {'list': 'bullet'}, {'list': 'check'}],
-    ['link', 'image', 'video', 'blockquote', 'code-block'],
-    ['clean'],
-  ]
+const BODY_TOOLBAR = [
+  [{'header': []}, 'bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
+  [{'align': []}, {'indent': '-1'}, {'indent': '+1'}, {'list': 'ordered'}, {'list': 'bullet'}, {'list': 'check'}],
+  ['link', 'image', 'video', 'blockquote', 'code-block'],
+  ['clean'],
+]
 
-  const mainEditor = new Quill('#mainEditor', {
+const SUMMARY_TOOLBAR = [
+  ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
+  ['clean'],
+]
+
+$(() => {
+  const bodyEditor = new Quill('#bodyEditor', {
     modules: {
-      toolbar: mainToolbar,
+      toolbar: BODY_TOOLBAR,
     },
     placeholder: 'Start writing...',
     theme: 'snow',
   })
 
-  const summaryToolbar = [
-    ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
-    ['clean'],
-  ]
-
   const summaryEditor = new Quill('#summaryEditor', {
     modules: {
-      toolbar: summaryToolbar,
+      toolbar: SUMMARY_TOOLBAR,
     },
     placeholder: 'Write a few sentences explaining what the article is about.',
     theme: 'snow',
   })
 
-  const articlePreview = $('#articlePreview').get()[0] as ArticlePreview
+  const articlePreview = $('#articlePreview').get(0) as ArticlePreview
 
   $('#title').on('change', function () {
     articlePreview.title = $(this).val() as string
@@ -46,14 +45,14 @@ $(() => {
     articlePreview.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
   })
 
-  $('#textColor').on('change', function () {
+  $('#textColorHex').on('change', function () {
     articlePreview.textColor = $(this).val() as string
   })
 
   const author = $('#author')
 
   author.on('change', function () {
-    articlePreview.author = $(this).text()
+    articlePreview.author = $(this).val() as string
   })
 
   const published = $('#published')
@@ -89,6 +88,16 @@ $(() => {
       authorLabel.addClass('disabled-label')
       publishedLabel.addClass('disabled-label')
     }
+  })
+
+  $('#previewButton').on('click', () => {
+    const body = bodyEditor.getSemanticHTML()
+
+    $('#bodyPreviewContainer').css('display', 'block')
+    $('#bodyPreview').html(body)
+
+    $('#body').val(body)
+    $('#summary').val(summaryEditor.getSemanticHTML())
   })
 })
 
