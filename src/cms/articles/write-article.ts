@@ -30,29 +30,31 @@ $(() => {
     theme: 'snow',
   })
 
-  const articlePreview = $('#articlePreview').get(0) as ArticlePreview
+  const articlePreview = $('#articlePreview')
+  const articlePreviewComponent = articlePreview.get(0) as ArticlePreview
 
   $('#title').on('change', function () {
-    articlePreview.title = $(this).val() as string
+    articlePreviewComponent.title = $(this).val() as string
   })
 
   summaryEditor.on('text-change', () => {
-    articlePreview.innerHTML = summaryEditor.getSemanticHTML()
+    articlePreviewComponent.innerHTML = summaryEditor.getSemanticHTML().replace(/&nbsp;/g, ' ')
+    articlePreview.children('p').addClass('no-margin-block')
   })
 
   $('#previewImage').on('change', function () {
     const files = (this as HTMLInputElement).files
-    articlePreview.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
+    articlePreviewComponent.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
   })
 
   $('#textColorHex').on('change', function () {
-    articlePreview.textColor = $(this).val() as string
+    articlePreviewComponent.textColor = $(this).val() as string
   })
 
   const author = $('#author')
 
   author.on('change', function () {
-    articlePreview.author = $(this).val() as string
+    articlePreviewComponent.author = $(this).val() as string
   })
 
   const published = $('#published')
@@ -69,7 +71,7 @@ $(() => {
       year: 'numeric',
     })
 
-    articlePreview.published = dateTimeFormat.format(new Date(year, month, day))
+    articlePreviewComponent.published = dateTimeFormat.format(new Date(year, month, day))
   })
 
   $('#publisherOverride').on('change', function () {

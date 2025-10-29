@@ -12,27 +12,75 @@ const DATE_TIME_FORMAT = new Intl.DateTimeFormat(navigator.language, {
 export class ArticlePreview extends LitElement {
 
   static styles = css`
+    @media screen and (max-width: 840px) {
+      .article-preview {
+        h2, h3 {
+          width: 50%;
+        }
+      }
+
+      .article-summary {
+        background-color: rgba(233, 233, 233, 0.8);
+        border-radius: 8px;
+        font-size: xx-small;
+        padding: 4px;
+        -webkit-line-clamp: 3;
+      }
+    }
+
+    @media screen and (min-width: 841px) and (max-width: 1199px) {
+      .article-summary {
+        font-size: x-small;
+        -webkit-line-clamp: 5;
+      }
+    }
+
+    @media screen and (min-width: 841px) {
+      .article-preview {
+        width: 50%;
+      }
+    }
+
     .article {
       background-position: center;
       background-size: cover;
       border-radius: 24px;
-      color: white;
+      display: flex;
       margin-bottom: 1em;
       padding: 1em 2em;
+      text-decoration: none;
+    }
+    
+    .article:hover {
+      filter: brightness(1.1);
+      transition: 0.2s ease-in;
     }
 
     .article-author {
       font-style: italic;
+      margin-block-end: 8px;
+      margin-block-start: 0;
     }
 
-    .article-preview {
+    .article-summary {
       display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;
-
       font-size: smaller;
       overflow: hidden;
       text-overflow: ellipsis;
+      -webkit-box-orient: vertical;
+    }
+
+    .article-title {
+      margin-block-end: 9px;
+    }
+    
+    a {
+      color: black;
+    }
+    
+    p {
+      margin-block-end: 0;
+      margin-block-start: 0;
     }
   `
 
@@ -55,31 +103,25 @@ export class ArticlePreview extends LitElement {
   textColor: string = '#000000'
 
   render() {
-    const textColor = styleMap({color: `${this.textColor} !important`})
-    let styles = {color: this.textColor}
+    const styles = {}
 
     if (this.previewImageUrl) {
-      styles['backgroundImage'] = `url(${this.previewImageUrl})`
+      styles['backgroundImage'] = `linear-gradient(to right, ${this.textColor}e0 40%, rgba(0, 0, 0, 0) 75%), url(${this.previewImageUrl})`
     } else {
       styles['border'] = 'solid 1px black';
     }
 
-    const authorSlug = this.author.toLowerCase().replace(/\s+/g, '-')
-
     return html`
-      <div class="article" style="${styleMap(styles)}">
-        <h2>
-          <a href="${this.url}" style="${textColor}">
-            ${this.title}
-          </a>
-        </h2>
-        <h3 class="article-author">
-          by
-          <a href="/team#${authorSlug}" style="${textColor}">${this.author}</a>
-          // ${this.published}
-        </h3>
-        <slot></slot>
-      </div>
+      <a href="${this.url}" class="article" style="${styleMap(styles)}">
+        <div class="article-preview">
+          <h2 class="article-title">${this.title}</h2>
+          <h4 class="article-author">by ${this.author}</h4>
+          <h5 class="article-author">${this.published}</h5>
+          <div class="article-summary">
+            <slot></slot>
+          </div>
+        </div>
+      </a>
     `
   }
 }
