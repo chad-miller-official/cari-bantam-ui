@@ -1,5 +1,9 @@
 import Quill from 'quill'
 import {ArticlePreview} from "../../articles/components/article-preview";
+import {dateToString} from "../../util";
+
+declare const originalAuthor: string
+declare const originalAuthorName: string
 
 const BODY_TOOLBAR = [
   [{'header': []}, 'bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
@@ -33,8 +37,10 @@ $(() => {
   const articlePreview = $('#articlePreview')
   const articlePreviewComponent = articlePreview.get(0) as ArticlePreview
 
-  $('#title').on('change', function () {
-    articlePreviewComponent.title = $(this).val() as string
+  const title = $('#title')
+
+  title.on('change', function () {
+    articlePreviewComponent.title = $(this).val().toString()
   })
 
   summaryEditor.on('text-change', () => {
@@ -47,14 +53,15 @@ $(() => {
     articlePreviewComponent.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
   })
 
-  $('#textColorHex').on('change', function () {
-    articlePreviewComponent.textColor = $(this).val() as string
+  $('#backgroundColorHex').on('change', function () {
+    articlePreviewComponent.backgroundColor = $(this).val().toString()
   })
 
   const author = $('#author')
 
   author.on('change', function () {
-    articlePreviewComponent.author = $(this).val() as string
+    const selectedOption = $(this).children('option:selected')
+    articlePreviewComponent.author = selectedOption.text()
   })
 
   const published = $('#published')
@@ -64,14 +71,7 @@ $(() => {
     const year = selectedDate.getUTCFullYear()
     const month = selectedDate.getUTCMonth()
     const day = selectedDate.getUTCDate()
-
-    const dateTimeFormat = new Intl.DateTimeFormat(navigator.language, {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-    })
-
-    articlePreviewComponent.published = dateTimeFormat.format(new Date(year, month, day))
+    articlePreviewComponent.published = dateToString(new Date(year, month, day))
   })
 
   $('#publisherOverride').on('change', function () {
@@ -89,6 +89,19 @@ $(() => {
     } else {
       authorLabel.addClass('disabled-label')
       publishedLabel.addClass('disabled-label')
+
+      author.val(originalAuthor)
+      published.val(new Date().toISOString().split('T')[0])
+
+      articlePreviewComponent.author = originalAuthorName
+
+      const dateTimeFormat = new Intl.DateTimeFormat(navigator.language, {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
+
+      articlePreviewComponent.published = dateTimeFormat.format(new Date())
     }
   })
 
@@ -96,6 +109,18 @@ $(() => {
     const body = bodyEditor.getSemanticHTML()
 
     $('#bodyPreviewContainer').css('display', 'block')
+    $('#titlePreview').text(articlePreviewComponent.title)
+    $('#authorPreview').text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
+
+    const originalPublicationUrl = $('#originalPublicationUrl').val()
+    const originalPublicationUrlPreview = $('#originalPublicationUrlPreview')
+
+    if (originalPublicationUrl) {
+      originalPublicationUrlPreview.text(`Originally published at ${originalPublicationUrl}`)
+    } else {
+      originalPublicationUrlPreview.text(null)
+    }
+
     $('#bodyPreview').html(body)
 
     $('#body').val(body)

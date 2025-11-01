@@ -1,12 +1,7 @@
 import {css, html, LitElement} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {styleMap} from "lit/directives/style-map.js";
-
-const DATE_TIME_FORMAT = new Intl.DateTimeFormat(navigator.language, {
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-})
+import {dateToString} from "../../util";
 
 @customElement('article-preview')
 export class ArticlePreview extends LitElement {
@@ -50,7 +45,7 @@ export class ArticlePreview extends LitElement {
       padding: 1em 2em;
       text-decoration: none;
     }
-    
+
     .article:hover {
       filter: brightness(1.1);
       transition: 0.2s ease-in;
@@ -73,11 +68,11 @@ export class ArticlePreview extends LitElement {
     .article-title {
       margin-block-end: 9px;
     }
-    
+
     a {
       color: black;
     }
-    
+
     p {
       margin-block-end: 0;
       margin-block-start: 0;
@@ -94,19 +89,19 @@ export class ArticlePreview extends LitElement {
   url: string = '#'
 
   @property()
-  published: string = DATE_TIME_FORMAT.format(new Date())
+  published: string = dateToString(new Date())
 
   @property()
   previewImageUrl?: string
 
   @property()
-  textColor: string = '#000000'
+  backgroundColor: string = '#ffffff'
 
   render() {
     const styles = {}
 
     if (this.previewImageUrl) {
-      styles['backgroundImage'] = `linear-gradient(to right, ${this.textColor}e0 40%, rgba(0, 0, 0, 0) 75%), url(${this.previewImageUrl})`
+      styles['backgroundImage'] = `linear-gradient(to right, ${this.backgroundColor}e0 40%, rgba(0, 0, 0, 0) 75%), url(${this.previewImageUrl})`
     } else {
       styles['border'] = 'solid 1px black';
     }
