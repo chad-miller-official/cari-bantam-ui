@@ -7,7 +7,7 @@ declare const originalAuthorName: string
 
 const BODY_TOOLBAR = [
   [{'header': []}, 'bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
-  [{'align': []}, {'indent': '-1'}, {'indent': '+1'}, {'list': 'ordered'}, {'list': 'bullet'}, {'list': 'check'}],
+  [{'color': []}, {'align': []}, {'indent': '-1'}, {'indent': '+1'}, {'list': 'ordered'}, {'list': 'bullet'}, {'list': 'check'}],
   ['link', 'image', 'video', 'blockquote', 'code-block'],
   ['clean'],
 ]
@@ -16,6 +16,15 @@ const SUMMARY_TOOLBAR = [
   ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
   ['clean'],
 ]
+
+function clearAuthorOverride() {
+  const authorOverride = $('#authorOverride')
+  authorOverride.val(null)
+  authorOverride.removeAttr('required')
+  authorOverride.prop('placeholder', '')
+  authorOverride.prop('disabled', true)
+  authorOverride.css('display', 'none')
+}
 
 $(() => {
   const bodyEditor = new Quill('#bodyEditor', {
@@ -48,20 +57,39 @@ $(() => {
     articlePreview.children('p').addClass('no-margin-block')
   })
 
-  $('#previewImage').on('change', function () {
+  const previewImage = $('#previewImage');
+
+  previewImage.on('change', function () {
     const files = (this as HTMLInputElement).files
     articlePreviewComponent.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
   })
 
-  $('#backgroundColorHex').on('change', function () {
+  const backgroundColorHex = $('#backgroundColorHex')
+
+  backgroundColorHex.on('change', function () {
     articlePreviewComponent.backgroundColor = $(this).val().toString()
   })
 
   const author = $('#author')
+  const authorOverride = $('#authorOverride')
 
   author.on('change', function () {
-    const selectedOption = $(this).children('option:selected')
-    articlePreviewComponent.author = selectedOption.text()
+    if ($(this).val() === '-1') {
+      authorOverride.removeAttr('disabled')
+      authorOverride.prop('placeholder', 'Enter author name...')
+      authorOverride.prop('required', true)
+      authorOverride.css('display', 'initial')
+      articlePreviewComponent.author = null
+    } else {
+      clearAuthorOverride()
+
+      const selectedOption = $(this).children('option:selected')
+      articlePreviewComponent.author = selectedOption.text()
+    }
+  })
+
+  authorOverride.on('change', function () {
+    articlePreviewComponent.author = $(this).val().toString()
   })
 
   const published = $('#published')
@@ -90,41 +118,44 @@ $(() => {
       authorLabel.addClass('disabled-label')
       publishedLabel.addClass('disabled-label')
 
+      clearAuthorOverride()
+
       author.val(originalAuthor)
       published.val(new Date().toISOString().split('T')[0])
 
       articlePreviewComponent.author = originalAuthorName
-
-      const dateTimeFormat = new Intl.DateTimeFormat(navigator.language, {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-
-      articlePreviewComponent.published = dateTimeFormat.format(new Date())
+      articlePreviewComponent.published = dateToString(new Date())
     }
   })
 
   $('#previewButton').on('click', () => {
     const body = bodyEditor.getSemanticHTML()
 
-    $('#bodyPreviewContainer').css('display', 'block')
-    $('#titlePreview').text(articlePreviewComponent.title)
-    $('#authorPreview').text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
+    $('#bodyPreviewContainer').css('display', 'flex')
+
+    const bodyPreview = $('#bodyPreview')
+    bodyPreview.html(body.replace(/&nbsp;/g, ' '))
+
+    const headerPreview = $('<div>').css(
+        'background-image',
+        `linear-gradient(to bottom, transparent, transparent 50%, white), linear-gradient(to right, ${articlePreviewComponent.backgroundColor}e0 40%, transparent 75%), url(${articlePreviewComponent.previewImageUrl})`
+    ).addClass('header-preview').append(
+        $('<h1>').css('margin', 'revert').text(articlePreviewComponent.title),
+        $('<h3>').css('margin', 'revert').text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
+    )
 
     const originalPublicationUrl = $('#originalPublicationUrl').val()
-    const originalPublicationUrlPreview = $('#originalPublicationUrlPreview')
 
     if (originalPublicationUrl) {
-      originalPublicationUrlPreview.text(`Originally published at ${originalPublicationUrl}`)
-    } else {
-      originalPublicationUrlPreview.text(null)
+      headerPreview.append($('<p>').text(`Originally published at ${originalPublicationUrl}`))
     }
 
-    $('#bodyPreview').html(body)
+    bodyPreview.prepend(headerPreview)
 
     $('#body').val(body)
     $('#summary').val(summaryEditor.getSemanticHTML())
+
+    $('body').css('overflow', 'hidden')
   })
 })
 

@@ -83,7 +83,7 @@ export class ArticlePreview extends LitElement {
   title: string = '(no title)'
 
   @property()
-  author: string = '(unknown)'
+  author?: string
 
   @property()
   url: string = '#'
@@ -101,7 +101,7 @@ export class ArticlePreview extends LitElement {
     const styles = {}
 
     if (this.previewImageUrl) {
-      styles['backgroundImage'] = `linear-gradient(to right, ${this.backgroundColor}e0 40%, rgba(0, 0, 0, 0) 75%), url(${this.previewImageUrl})`
+      styles['backgroundImage'] = `linear-gradient(to right, ${this.backgroundColor}e0 40%, transparent 75%), url(${this.previewImageUrl})`
     } else {
       styles['border'] = 'solid 1px black';
     }
@@ -110,7 +110,7 @@ export class ArticlePreview extends LitElement {
       <a href="${this.url}" class="article" style="${styleMap(styles)}">
         <div class="article-preview">
           <h2 class="article-title">${this.title}</h2>
-          <h4 class="article-author">by ${this.author}</h4>
+          <h4 class="article-author">by ${this.author || '(unknown)'}</h4>
           <h5 class="article-author">${this.published}</h5>
           <div class="article-summary">
             <slot></slot>
