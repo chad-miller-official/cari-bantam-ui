@@ -127,13 +127,14 @@ $(() => {
     (modal.get(0) as HTMLDialogElement).showModal()
     $('body').css('overflow', 'hidden')
 
-    const bodyPreview = $('#bodyPreview')
-    bodyPreview.html(body.replace(/&nbsp;/g, ' '))
-
-    const headerPreview = $('<div>').css(
+    const headerPreview = $('#headerPreview').css(
         'background-image',
         `linear-gradient(to bottom, transparent, transparent 50%, white), linear-gradient(to right, ${articlePreviewComponent.backgroundColor}e0 40%, transparent 75%), url(${articlePreviewComponent.previewImageUrl})`
-    ).addClass('header-preview').append(
+    )
+
+    headerPreview.empty()
+
+    headerPreview.append(
         $('<h1>').css('margin', 'revert').text(titleEditor.text()),
         $('<h3>').css('margin', 'revert').text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
     )
@@ -144,7 +145,8 @@ $(() => {
       headerPreview.append($('<p>').text(`Originally published at ${originalPublicationUrl}`))
     }
 
-    bodyPreview.prepend(headerPreview)
+    const bodyPreview = $('#bodyPreview')
+    bodyPreview.html(body.replace(/&nbsp;/g, ' '))
 
     $('#title').val(titleEditor.text())
     $('#body').val(body)
