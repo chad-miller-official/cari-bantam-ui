@@ -28,6 +28,12 @@ function resetPlaceholderText() {
 }
 
 $(() => {
+  const modal = $('#modal')
+
+  modal.on('close', () => {
+    $('body').css('overflow', 'initial')
+  })
+
   const bodyEditor = new Quill('#bodyEditor', {
     modules: {
       toolbar: BODY_TOOLBAR,
@@ -116,9 +122,10 @@ $(() => {
   summaryEditor.on('focusout', resetPlaceholderText)
 
   $('#previewButton').on('click', () => {
-    const body = bodyEditor.getSemanticHTML()
+    const body = bodyEditor.getSemanticHTML();
 
-    $('#bodyPreviewContainer').toggleClass('closed')
+    (modal.get(0) as HTMLDialogElement).showModal()
+    $('body').css('overflow', 'hidden')
 
     const bodyPreview = $('#bodyPreview')
     bodyPreview.html(body.replace(/&nbsp;/g, ' '))
