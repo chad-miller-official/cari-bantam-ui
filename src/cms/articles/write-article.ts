@@ -12,11 +12,6 @@ const BODY_TOOLBAR = [
   ['clean'],
 ]
 
-const SUMMARY_TOOLBAR = [
-  ['bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
-  ['clean'],
-]
-
 function clearAuthorOverride() {
   const authorOverride = $('#authorOverride')
   authorOverride.val(null)
@@ -24,6 +19,12 @@ function clearAuthorOverride() {
   authorOverride.prop('placeholder', '')
   authorOverride.prop('disabled', true)
   authorOverride.css('display', 'none')
+}
+
+function resetPlaceholderText() {
+  if (!$(this).text().trim().length) {
+    $(this).empty()
+  }
 }
 
 $(() => {
@@ -35,28 +36,8 @@ $(() => {
     theme: 'snow',
   })
 
-  const summaryEditor = new Quill('#summaryEditor', {
-    modules: {
-      toolbar: SUMMARY_TOOLBAR,
-    },
-    placeholder: 'Write a few sentences explaining what the article is about.',
-    theme: 'snow',
-  })
-
   const articlePreview = $('#articlePreview')
   const articlePreviewComponent = articlePreview.get(0) as ArticlePreview
-
-  const title = $('#title')
-
-  title.on('change', function () {
-    articlePreviewComponent.title = $(this).val().toString()
-  })
-
-  summaryEditor.on('text-change', () => {
-    articlePreviewComponent.innerHTML = summaryEditor.getSemanticHTML().replace(/&nbsp;/g, ' ')
-    articlePreview.children('p').addClass('no-margin-block')
-  })
-
   const previewImage = $('#previewImage');
 
   previewImage.on('change', function () {
@@ -128,10 +109,16 @@ $(() => {
     }
   })
 
+  const titleEditor = $('#titleEditor')
+  titleEditor.on('focusout', resetPlaceholderText)
+
+  const summaryEditor = $('#summaryEditor')
+  summaryEditor.on('focusout', resetPlaceholderText)
+
   $('#previewButton').on('click', () => {
     const body = bodyEditor.getSemanticHTML()
 
-    $('#bodyPreviewContainer').css('display', 'flex')
+    $('#bodyPreviewContainer').toggleClass('closed')
 
     const bodyPreview = $('#bodyPreview')
     bodyPreview.html(body.replace(/&nbsp;/g, ' '))
@@ -140,7 +127,7 @@ $(() => {
         'background-image',
         `linear-gradient(to bottom, transparent, transparent 50%, white), linear-gradient(to right, ${articlePreviewComponent.backgroundColor}e0 40%, transparent 75%), url(${articlePreviewComponent.previewImageUrl})`
     ).addClass('header-preview').append(
-        $('<h1>').css('margin', 'revert').text(articlePreviewComponent.title),
+        $('<h1>').css('margin', 'revert').text(titleEditor.text()),
         $('<h3>').css('margin', 'revert').text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
     )
 
@@ -152,10 +139,9 @@ $(() => {
 
     bodyPreview.prepend(headerPreview)
 
+    $('#title').val(titleEditor.text())
     $('#body').val(body)
-    $('#summary').val(summaryEditor.getSemanticHTML())
-
-    $('body').css('overflow', 'hidden')
+    $('#summary').val(summaryEditor.text())
   })
 })
 

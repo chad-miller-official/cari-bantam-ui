@@ -13,21 +13,6 @@ export class ArticlePreview extends LitElement {
           width: 50%;
         }
       }
-
-      .article-summary {
-        background-color: rgba(233, 233, 233, 0.8);
-        border-radius: 8px;
-        font-size: xx-small;
-        padding: 4px;
-        -webkit-line-clamp: 3;
-      }
-    }
-
-    @media screen and (min-width: 841px) and (max-width: 1199px) {
-      .article-summary {
-        font-size: x-small;
-        -webkit-line-clamp: 5;
-      }
     }
 
     @media screen and (min-width: 841px) {
@@ -57,25 +42,12 @@ export class ArticlePreview extends LitElement {
       margin-block-start: 0;
     }
 
-    .article-summary {
-      display: -webkit-box;
-      font-size: smaller;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      -webkit-box-orient: vertical;
-    }
-
     .article-title {
       margin-block-end: 9px;
     }
 
     a {
       color: black;
-    }
-
-    p {
-      margin-block-end: 0;
-      margin-block-start: 0;
     }
   `
 
@@ -86,7 +58,7 @@ export class ArticlePreview extends LitElement {
   author?: string
 
   @property()
-  url: string = '#'
+  url?: string
 
   @property()
   published: string = dateToString(new Date())
@@ -106,17 +78,27 @@ export class ArticlePreview extends LitElement {
       styles['border'] = 'solid 1px black';
     }
 
-    return html`
-      <a href="${this.url}" class="article" style="${styleMap(styles)}">
-        <div class="article-preview">
-          <h2 class="article-title">${this.title}</h2>
-          <h4 class="article-author">by ${this.author || '(unknown)'}</h4>
-          <h5 class="article-author">${this.published}</h5>
-          <div class="article-summary">
-            <slot></slot>
-          </div>
-        </div>
-      </a>
-    `
+    const articlePreview = html`
+      <div class="article-preview">
+        <h2 class="article-title">
+          <slot name="title">${this.title}</slot>
+        </h2>
+        <h4 class="article-author">by ${this.author || '(unknown)'}</h4>
+        <h5 class="article-author">${this.published}</h5>
+        <slot name="summary"></slot>
+      </div>`
+
+    if (this.url) {
+      return html`
+        <a href="${this.url}" class="article" style="${styleMap(styles)}">
+          ${articlePreview}
+        </a>
+      `
+    } else {
+      return html`
+        <div class="article" style="${styleMap(styles)}">
+          ${articlePreview}
+        </div>`
+    }
   }
 }
