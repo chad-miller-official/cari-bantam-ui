@@ -1,16 +1,12 @@
-import Quill from 'quill'
-import {ArticlePreview} from "../../articles/components/article-preview";
-import {dateToString} from "../../util";
+import {ArticlePreview} from "../../articles/components/article-preview"
+import {dateToString} from "../../util"
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
 
-const BODY_TOOLBAR = [
-  [{'header': []}, 'bold', 'italic', 'underline', 'strike', 'code', {'script': 'sub'}, {'script': 'super'}],
-  [{'color': []}, {'align': []}, {'indent': '-1'}, {'indent': '+1'}, {'list': 'ordered'}, {'list': 'bullet'}, {'list': 'check'}],
-  ['link', 'image', 'video', 'blockquote', 'code-block'],
-  ['clean'],
-]
+declare namespace tinymce {
+  export const activeEditor: any
+}
 
 function clearAuthorOverride() {
   const authorOverride = $('#authorOverride')
@@ -32,14 +28,6 @@ $(() => {
 
   modal.on('close', () => {
     $('body').css('overflow', 'initial')
-  })
-
-  const bodyEditor = new Quill('#bodyEditor', {
-    modules: {
-      toolbar: BODY_TOOLBAR,
-    },
-    placeholder: 'Start writing...',
-    theme: 'snow',
   })
 
   const articlePreview = $('#articlePreview')
@@ -122,7 +110,7 @@ $(() => {
   summaryEditor.on('focusout', resetPlaceholderText)
 
   $('#previewButton').on('click', () => {
-    const body = bodyEditor.getSemanticHTML();
+    const body = tinymce.activeEditor.getContent('bodyEditor');
 
     (modal.get(0) as HTMLDialogElement).showModal()
     $('body').css('overflow', 'hidden')
@@ -146,7 +134,7 @@ $(() => {
     }
 
     const bodyPreview = $('#bodyPreview')
-    bodyPreview.html(body.replace(/&nbsp;/g, ' '))
+    bodyPreview.html(body)
 
     $('#title').val(titleEditor.text())
     $('#body').val(body)
