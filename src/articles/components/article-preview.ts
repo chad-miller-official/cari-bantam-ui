@@ -49,6 +49,10 @@ export class ArticlePreview extends LitElement {
     a {
       color: black;
     }
+    
+    slot[name=summary] {
+      font-size: smaller;
+    }
   `
 
   @property()
