@@ -4,6 +4,7 @@ import tinymce from "tinymce";
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
+declare const linkOnly: boolean
 
 function clearAuthorOverride() {
   const authorOverride = $('#authorOverride')
@@ -14,11 +15,11 @@ function clearAuthorOverride() {
   authorOverride.css('display', 'none')
 }
 
-function togglePreviewButton() {
-  const previewButton = $('#previewButton')
+function togglePreviewOrSubmitButton() {
+  const button = linkOnly ? $('#articleForm button[type=submit]') : $('#previewButton')
 
   if (
-      tinymce.activeEditor.getContent()
+      (linkOnly ? $('#originalPublicationUrl').val() : tinymce.activeEditor.getContent())
       && $('#previewImage').val()
       && $('#published').val()
       && $('#articlePreview > [slot=title]').text()
@@ -26,9 +27,9 @@ function togglePreviewButton() {
       && (parseInt($('#author').val().toString()) > 0
           || $('#authorOverride').val())
   ) {
-    previewButton.removeAttr('disabled')
+    button.removeAttr('disabled')
   } else {
-    previewButton.attr('disabled', 'disabled')
+    button.attr('disabled', 'disabled')
   }
 }
 
@@ -39,24 +40,30 @@ function resetPlaceholderText() {
 }
 
 $(() => {
-  const body = $('#body')
-
-  // @ts-ignore
-  body.tinymce({
-    license_key: 'gpl',
-    promotion: false,
-    plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-    toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-    setup: (editor) => {
-      editor.on('focusout', togglePreviewButton)
-    },
-  })
+  if (!linkOnly) {
+    // @ts-ignore
+    $('#body').tinymce({
+      license_key: 'gpl',
+      promotion: false,
+      plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+      toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+      setup: (editor) => {
+        editor.on('focusout', togglePreviewOrSubmitButton)
+      },
+    })
+  }
 
   const modal = $('#modal')
 
   modal.on('close', () => {
     $('body').css('overflow', 'initial')
   })
+
+  const originalPublicationUrl = $('#originalPublicationUrl')
+
+  if (linkOnly) {
+    originalPublicationUrl.on('change', togglePreviewOrSubmitButton)
+  }
 
   const articlePreview = $('#articlePreview')
   const articlePreviewComponent = articlePreview.get(0) as ArticlePreview
@@ -65,7 +72,7 @@ $(() => {
   previewImage.on('change', function () {
     const files = (this as HTMLInputElement).files
     articlePreviewComponent.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
-    togglePreviewButton()
+    togglePreviewOrSubmitButton()
   })
 
   const backgroundColorHex = $('#backgroundColorHex')
@@ -84,7 +91,7 @@ $(() => {
     summaryEditor.css('color', textColor)
     summaryEditor.attr('data-color', `${textColor}d0`)
 
-    togglePreviewButton()
+    togglePreviewOrSubmitButton()
   })
 
   const author = $('#author')
@@ -104,12 +111,12 @@ $(() => {
       articlePreviewComponent.author = selectedOption.text()
     }
 
-    togglePreviewButton()
+    togglePreviewOrSubmitButton()
   })
 
   authorOverride.on('change', function () {
     articlePreviewComponent.author = $(this).val().toString()
-    togglePreviewButton()
+    togglePreviewOrSubmitButton()
   })
 
   const published = $('#published')
@@ -128,7 +135,7 @@ $(() => {
     }
 
     articlePreviewComponent.published = dateString
-    togglePreviewButton()
+    togglePreviewOrSubmitButton()
   })
 
   $('#publisherOverride').on('change', function () {
@@ -160,48 +167,54 @@ $(() => {
       articlePreviewComponent.published = dateToString(new Date())
     }
 
-    togglePreviewButton()
+    togglePreviewOrSubmitButton()
   })
 
   const titleEditor = $('#titleEditor')
-  titleEditor.on('input', togglePreviewButton)
-  titleEditor.on('focusout', resetPlaceholderText)
+  titleEditor.on('input', togglePreviewOrSubmitButton)
+
+  titleEditor.on('focusout', function() {
+    $('#title').val($(this).text())
+    resetPlaceholderText()
+  })
 
   const summaryEditor = $('#summaryEditor')
-  summaryEditor.on('input', togglePreviewButton)
-  summaryEditor.on('focusout', resetPlaceholderText)
+  summaryEditor.on('input', togglePreviewOrSubmitButton)
 
-  $('#previewButton').on('click', () => {
-    $('#publishTools .tooltip').removeClass("tooltip")
-    $('#publishTools button[type=submit]').removeAttr("disabled")
-
-    tinymce.activeEditor.save();
-
-    (modal.get(0) as HTMLDialogElement).showModal()
-    $('body').css('overflow', 'hidden')
-
-    const headerPreview = $('#headerPreview').css(
-        'background-image',
-        `linear-gradient(to bottom, transparent, transparent 50%, white), linear-gradient(to right, ${articlePreviewComponent.backgroundColor}e0 40%, transparent 75%), url(${articlePreviewComponent.previewImageUrl})`
-    )
-
-    const textColor = articlePreviewComponent.textColor
-
-    headerPreview.empty().append(
-        $('<h1>').css('color', textColor).text(titleEditor.text()),
-        $('<h3>').css('color', textColor).text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
-    )
-
-    const originalPublicationUrl = $('#originalPublicationUrl').val()
-
-    if (originalPublicationUrl) {
-      headerPreview.append($('<p>').text(`Originally published at ${originalPublicationUrl}`))
-    }
-
-    $('#bodyPreview').html(tinymce.activeEditor.getContent())
-    $('#title').val(titleEditor.text())
-    $('#summary').val(summaryEditor.text())
+  summaryEditor.on('focusout', function() {
+    $('#summary').val($(this).text())
+    resetPlaceholderText()
   })
+
+  if (!linkOnly) {
+    $('#previewButton').on('click', () => {
+      $('#publishTools .tooltip').removeClass("tooltip")
+      $('#publishTools button[type=submit]').removeAttr("disabled")
+
+      tinymce.activeEditor.save();
+
+      (modal.get(0) as HTMLDialogElement).showModal()
+      $('body').css('overflow', 'hidden')
+
+      const headerPreview = $('#headerPreview').css(
+          'background-image',
+          `linear-gradient(to bottom, transparent, transparent 50%, white), linear-gradient(to right, ${articlePreviewComponent.backgroundColor}e0 40%, transparent 75%), url(${articlePreviewComponent.previewImageUrl})`
+      )
+
+      const textColor = articlePreviewComponent.textColor
+
+      headerPreview.empty().append(
+          $('<h1>').css('color', textColor).text(titleEditor.text()),
+          $('<h3>').css('color', textColor).text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
+      )
+
+      if (originalPublicationUrl.val()) {
+        headerPreview.append($('<p>').text(`Originally published at ${originalPublicationUrl.val()}`))
+      }
+
+      $('#bodyPreview').html(tinymce.activeEditor.getContent())
+    })
+  }
 })
 
 export {ArticlePreview}
