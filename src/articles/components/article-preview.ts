@@ -1,7 +1,7 @@
 import {css, html, LitElement} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {styleMap} from "lit/directives/style-map.js";
-import {dateToString} from "../../util";
+import {dateToString, invertColor} from "../../util";
 
 @customElement('article-preview')
 export class ArticlePreview extends LitElement {
@@ -74,17 +74,20 @@ export class ArticlePreview extends LitElement {
 
     if (this.previewImageUrl) {
       styles['backgroundImage'] = `linear-gradient(to right, ${this.backgroundColor}e0 40%, transparent 75%), url(${this.previewImageUrl})`
-    } else {
+      styles['color'] = invertColor(this.backgroundColor)
+    } else if (this.backgroundColor.toLowerCase() === '#ffffff') {
       styles['border'] = 'solid 1px black';
+    } else {
+      styles['background-color'] = this.backgroundColor
     }
 
     const articlePreview = html`
       <div class="article-preview">
         <h2 class="article-title">
-          <slot name="title">${this.title}</slot>
+          <slot name="title">${this.title || '(untitled)'}</slot>
         </h2>
         <h4 class="article-author">by ${this.author || '(unknown)'}</h4>
-        <h5 class="article-author">${this.published}</h5>
+        <h5 class="article-author">${this.published || '(not published)'}</h5>
         <slot name="summary"></slot>
       </div>`
 
