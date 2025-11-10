@@ -69,12 +69,15 @@ export class ArticlePreview extends LitElement {
   @property()
   backgroundColor: string = '#ffffff'
 
+  @property()
+  textColor: string = '#000000'
+
   render() {
     const styles = {}
 
     if (this.previewImageUrl) {
       styles['backgroundImage'] = `linear-gradient(to right, ${this.backgroundColor}e0 40%, transparent 75%), url(${this.previewImageUrl})`
-      styles['color'] = invertColor(this.backgroundColor)
+      styles['color'] = this.textColor
     } else if (this.backgroundColor.toLowerCase() === '#ffffff') {
       styles['border'] = 'solid 1px black';
     } else {

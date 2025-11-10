@@ -69,12 +69,16 @@ $(() => {
   })
 
   const backgroundColorHex = $('#backgroundColorHex')
+  const textColorHex = $('#textColorHex')
 
   backgroundColorHex.on('change', function () {
     const bgColor = $(this).val().toString()
     articlePreviewComponent.backgroundColor = bgColor
 
     const textColor = invertColor(bgColor)
+    articlePreviewComponent.textColor = textColor
+    textColorHex.val(textColor)
+
     titleEditor.css('color', textColor)
     titleEditor.attr('data-color', `${textColor}d0`)
     summaryEditor.css('color', textColor)
@@ -181,11 +185,11 @@ $(() => {
         `linear-gradient(to bottom, transparent, transparent 50%, white), linear-gradient(to right, ${articlePreviewComponent.backgroundColor}e0 40%, transparent 75%), url(${articlePreviewComponent.previewImageUrl})`
     )
 
-    const textColor = invertColor(articlePreviewComponent.backgroundColor)
+    const textColor = articlePreviewComponent.textColor
 
     headerPreview.empty().append(
-        $('<h1>').css('margin', 'revert').css('color', textColor).text(titleEditor.text()),
-        $('<h3>').css('margin', 'revert').css('color', textColor).text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
+        $('<h1>').css('color', textColor).text(titleEditor.text()),
+        $('<h3>').css('color', textColor).text(`by ${articlePreviewComponent.author} // ${articlePreviewComponent.published}`)
     )
 
     const originalPublicationUrl = $('#originalPublicationUrl').val()
