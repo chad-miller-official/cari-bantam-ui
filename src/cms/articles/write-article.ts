@@ -29,7 +29,7 @@ $(() => {
 
   $('#previewButton').on('click', () => {
     $('#publishTools .tooltip').removeClass("tooltip")
-    $('#publishTools button[type=submit]').removeAttr("disabled")
+    $('#publishButton').removeAttr("disabled")
 
     tinymce.activeEditor.save();
 
@@ -56,6 +56,8 @@ $(() => {
     articleReader.innerHTML = tinymce.activeEditor.getContent()
     $('#bodyPreview').empty().append(articleReader)
   })
+
+  $('#saveButton').on('click', () => $('#articleForm').trigger('submit'))
 })
 
 export {ArticlePreview}

@@ -113,6 +113,8 @@ export function setup(toggleButtonFunc: () => void) {
     toggleButtonFunc()
   })
 
+  $('#publishButton').on('click', () => $('#realPublished').val(published.val()))
+
   $('#publisherOverride').on('change', function () {
     const isChecked = $(this).prop('checked')
 
