@@ -3,14 +3,16 @@ import {dateToString, invertColor} from "../../util";
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
+declare const originalPublished: string
+declare const originalPublishedString: string
 
-function clearAuthorOverride() {
+function clearAuthorOverride(hide: boolean = true, resetValue?: string) {
   const authorOverride = $('#authorOverride')
-  authorOverride.val(null)
+  authorOverride.val(resetValue)
   authorOverride.removeAttr('required')
   authorOverride.prop('placeholder', '')
   authorOverride.prop('disabled', true)
-  authorOverride.css('display', 'none')
+  authorOverride.css('display', hide ? 'none' : 'initial')
 }
 
 function resetPlaceholderText() {
@@ -125,19 +127,25 @@ export function setup(toggleButtonFunc: () => void) {
       authorLabel.addClass('required')
       publishedLabel.removeClass('disabled-label')
       publishedLabel.addClass('required')
+
+      if (author.val() === '-1') {
+        authorOverride.removeAttr('disabled')
+      } else {
+        clearAuthorOverride()
+      }
     } else {
       authorLabel.addClass('disabled-label')
       authorLabel.removeClass('required')
       publishedLabel.addClass('disabled-label')
       publishedLabel.removeClass('required')
 
-      clearAuthorOverride()
+      clearAuthorOverride(originalAuthor !== null, originalAuthor === null ? originalAuthorName : null)
 
-      author.val(originalAuthor)
-      published.val(new Date().toISOString().split('T')[0])
+      author.val(originalAuthor === null ? '-1' : originalAuthor)
+      published.val(originalPublished)
 
       articlePreviewComponent.author = originalAuthorName
-      articlePreviewComponent.published = dateToString(new Date())
+      articlePreviewComponent.published = originalPublishedString
     }
 
     toggleButtonFunc()
