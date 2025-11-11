@@ -24,7 +24,8 @@ function resetPlaceholderText() {
 export function toggleButton(button: JQuery<HTMLButtonElement>, additionalChecks: boolean = true) {
   if (
       additionalChecks
-      && $('#previewImage').val()
+      && ($('#previewImage').val()
+          || ($('#articlePreview').get(0) as ArticlePreview).previewImageUrl)
       && $('#published').val()
       && $('#articlePreview > [slot=title]').text()
       && $('#articlePreview > [slot=summary]').text()
@@ -32,6 +33,7 @@ export function toggleButton(button: JQuery<HTMLButtonElement>, additionalChecks
           || $('#authorOverride').val())
   ) {
     button.removeAttr('disabled')
+    button.removeProp('disabled')
   } else {
     button.attr('disabled', 'disabled')
   }
@@ -45,6 +47,9 @@ export function setup(toggleButtonFunc: () => void) {
     const files = (this as HTMLInputElement).files
     articlePreviewComponent.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
     toggleButtonFunc()
+
+    $(this).prop('required', 'required')
+    $('label[for=previewImage]').addClass('required')
   })
 
   const titleEditor = $('#titleEditor')
