@@ -8,10 +8,8 @@ export class ArticlePreview extends LitElement {
 
   static styles = css`
     @media screen and (max-width: 840px) {
-      .article-preview {
-        h2, h3 {
-          width: 50%;
-        }
+      .article {
+        background-image: initial !important;
       }
     }
 
@@ -77,15 +75,13 @@ export class ArticlePreview extends LitElement {
   textColor: string = '#000000'
 
   render() {
-    const styles = {}
+    const styles = {backgroundColor: this.backgroundColor}
 
     if (this.previewImageUrl) {
       styles['backgroundImage'] = `linear-gradient(to right, ${this.backgroundColor}e0 40%, transparent 75%), url(${this.previewImageUrl})`
       styles['color'] = this.textColor
     } else if (this.backgroundColor.toLowerCase() === '#ffffff') {
       styles['border'] = 'solid 1px black';
-    } else {
-      styles['background-color'] = this.backgroundColor
     }
 
     const articlePreview = html`

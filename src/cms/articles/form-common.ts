@@ -40,7 +40,7 @@ export function toggleButton(button: JQuery<HTMLButtonElement>, additionalChecks
   }
 }
 
-export function setup(toggleButtonFunc: () => void) {
+export function setup(toggleButtonFunc: () => void, preSubmitHook: (event) => boolean = () => true) {
   const articlePreviewComponent = $('#articlePreview').get(0) as ArticlePreview
   const previewImage = $('#previewImage');
 
@@ -177,7 +177,11 @@ export function setup(toggleButtonFunc: () => void) {
     resetPlaceholderText()
   })
 
-  $('#articleForm').on('submit', function() {
-    ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
+  $('#articleForm').on('submit', function (event) {
+    if (preSubmitHook(event)) {
+      ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
+    } else {
+      event.preventDefault()
+    }
   })
 }
