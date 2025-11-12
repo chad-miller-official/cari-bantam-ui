@@ -1,5 +1,6 @@
 import {ArticlePreview} from "../../articles/components/article-preview";
 import {dateToString, invertColor} from "../../util";
+import {FullscreenSpinner} from "../../components/spinner";
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
@@ -174,5 +175,9 @@ export function setup(toggleButtonFunc: () => void) {
   summaryEditor.on('focusout', function () {
     $('#summary').val($(this).text())
     resetPlaceholderText()
+  })
+
+  $('#articleForm').on('submit', function() {
+    ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
   })
 }

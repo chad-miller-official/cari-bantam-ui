@@ -2,6 +2,7 @@ import {ArticlePreview} from "../../articles/components/article-preview"
 import tinymce from "tinymce";
 import {ArticleReader} from "../../articles/components/article-reader";
 import {setup, toggleButton} from "./form-common";
+import { FullscreenSpinner } from "../../components/spinner";
 
 function togglePreviewButton() {
   return toggleButton($('#previewButton'), Boolean(tinymce.activeEditor.getContent()))
@@ -60,4 +61,4 @@ $(() => {
   $('#saveButton').on('click', () => $('#articleForm').trigger('submit'))
 })
 
-export {ArticlePreview}
+export {ArticlePreview, FullscreenSpinner}
