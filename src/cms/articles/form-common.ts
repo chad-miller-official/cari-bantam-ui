@@ -285,26 +285,30 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
 
         let elemId = field
         let message = error.message
+        let validationMessageCssProp = 'display'
+        let validationMessageCssValue = 'initial'
 
         switch (field) {
           case 'title':
             elemId = 'titleEditor'
 
-            if (error.field) {
+            if (error.value) {
               message = `An article with this title already exists.`
             }
 
             break
           case 'summary':
             elemId = 'summaryEditor'
+            validationMessageCssProp = 'visibility'
+            validationMessageCssValue = 'visible'
             break
           case 'previewImageFile':
             elemId = 'previewImage'
             break
         }
 
-        $(`#${elemId} + .validation-message`)
-        .css('display', 'initial').text(message)
+        $(`#${elemId}`).parent().children('.validation-message')
+        .css(validationMessageCssProp, validationMessageCssValue).text(message)
 
         spinner.close()
         setupObject.onFormInvalid()
