@@ -83,20 +83,32 @@ function handlePreviewButtonClick() {
 
 $(() => {
   const setupObject = new WriteArticleSetupObject()
+  const body = $('#body')
 
   // @ts-ignore
-  $('#body').tinymce({
+  body.tinymce({
     license_key: 'gpl',
     promotion: false,
     plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
     toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
-    setup: (editor) => editor.on('focusout', setupObject.toggleSubmitButton),
+    setup: (editor) => {
+      editor.on('input', () => body.parent().children('.validation-message').css('display', ''))
+      editor.on('focusout', () => setupObject.toggleSubmitButton())
+    },
   })
+
   setup(setupObject)
 
   $('#modal').on('close', () => $('body').css('overflow', 'initial'))
   $('#previewButton').on('click', handlePreviewButtonClick)
-  $('#saveButton').on('click', () => $('#articleForm').trigger('submit', {validate: false}))
+  $('#saveButton').on('click', () => {
+    tinymce.activeEditor.save()
+
+    $('#articleForm').trigger('submit', {
+      validate: false,
+      method: 'put'
+    })
+  })
 })
 
 export {ArticlePreview, ArticleReader, FullscreenSpinner}

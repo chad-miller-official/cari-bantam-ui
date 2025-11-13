@@ -6,6 +6,7 @@ declare const originalAuthor: string
 declare const originalAuthorName: string
 declare const originalPublished: string
 declare const originalPublishedString: string
+declare const formMethod: string
 
 export class ArticleSetupObject {
   submitButton: JQuery<HTMLButtonElement>
@@ -15,8 +16,8 @@ export class ArticleSetupObject {
   }
 
   protected shouldEnableSubmitButton(): boolean {
-    return Boolean(($('#previewImage').val()
-            || getArticlePreviewComponent().previewImageUrl)
+    return Boolean(
+        getArticlePreviewComponent().previewImageUrl
         && $('#published').val()
         && $('#titleEditor').text()
         && $('#summaryEditor').text()
@@ -24,7 +25,7 @@ export class ArticleSetupObject {
             || $('#authorOverride').val()))
   }
 
-  protected disableSubmitButton() {
+  public disableSubmitButton() {
     this.submitButton.attr('disabled', 'disabled')
   }
 
@@ -129,7 +130,7 @@ function handlePreviewImageChange(event) {
     if (file.type.startsWith('image/')) {
       const reader = new FileReader()
 
-      reader.onload = (event) => {
+      reader.onload = (progressEvent) => {
         const image = new Image()
 
         image.onload = () => {
@@ -137,16 +138,16 @@ function handlePreviewImageChange(event) {
           const minHeight = parseInt($('#previewImageMinHeight').val().toString())
 
           if (image.naturalWidth < minWidth || image.naturalHeight < minHeight) {
-            articlePreviewComponent.previewImageUrl = null
-
             validationMessage.css('display', 'initial')
-            .text(`Preview image must be at least ${minWidth}px by ${minHeight}px.`)
+            .text(`Preview image must be at least ${minWidth}px in width and ${minHeight}px in height.`)
           } else {
             articlePreviewComponent.previewImageUrl = URL.createObjectURL(file)
           }
+
+          event.data.setupObject.toggleSubmitButton()
         }
 
-        image.src = event.target.result.toString()
+        image.src = progressEvent.target.result.toString()
       }
 
       reader.readAsDataURL(file)
@@ -162,8 +163,6 @@ function handlePreviewImageChange(event) {
 
   $(this).prop('required', 'required')
   $('label[for=previewImage]').addClass('required')
-
-  event.data.setupObject.toggleSubmitButton()
 }
 
 function handleBackgroundColorHexChange(event) {
@@ -262,10 +261,59 @@ function handlePublisherOverrideChange(event) {
   event.data.setupObject.toggleSubmitButton()
 }
 
+function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
+  event.preventDefault()
+
+  const doValidate = (data || {validate: true}).validate !== false
+  const method = (data || {method: formMethod || 'POST'}).method
+  const valid = doValidate ? setupObject.validate() : true
+
+  if (valid) {
+    const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
+    spinner.showModal()
+
+    $.ajax({
+      url: form.attr('action'),
+      data: new FormData(form.get(0)),
+      processData: false,
+      contentType: false,
+      method,
+      success: (res) => window.location = res.redirectTo,
+      error: (jqXHR) => {
+        const error = jqXHR.responseJSON
+        const field = error.field
+
+        let elemId = field
+        let message = error.message
+
+        switch (field) {
+          case 'title':
+            elemId = `${field}Editor`
+            message = `An article with this title already exists.`
+            break
+          case 'previewImageFile':
+            elemId = 'previewImage'
+            break
+        }
+
+        $(`#${elemId} + .validation-message`)
+        .css('display', 'initial').text(message)
+
+        spinner.close()
+        setupObject.onFormInvalid()
+      },
+    })
+  } else {
+    setupObject.onFormInvalid()
+  }
+}
+
 export function setup(setupObject: ArticleSetupObject) {
   recalculatePreviewImageMinDimensions()
 
-  $('#previewImage').on('change', {setupObject: setupObject}, handlePreviewImageChange)
+  const previewImage = $('#previewImage')
+  previewImage.on('change', {setupObject: setupObject}, handlePreviewImageChange)
+
   $('#backgroundColorHex').on('change', {setupObject: setupObject}, handleBackgroundColorHexChange)
 
   const published = $('#published')
@@ -315,20 +363,7 @@ export function setup(setupObject: ArticleSetupObject) {
     $('#realAuthorOverride').val(authorOverride.val())
   })
 
-  $('#articleForm').on('submit', (event, data) => {
-    const doValidate = (data || {validate: true}).validate !== false
-
-    if (!doValidate) {
-      $('#previewImage').attr('disabled', 'disabled')
-    }
-
-    const valid = doValidate ? setupObject.validate() : true
-
-    if (valid) {
-      ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
-    } else {
-      setupObject.onFormInvalid()
-      event.preventDefault()
-    }
+  $('#articleForm').on('submit', function (event, data) {
+    handleSubmit(event, data, $(this) as JQuery<HTMLFormElement>, setupObject)
   })
 }
