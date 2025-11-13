@@ -288,8 +288,15 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
 
         switch (field) {
           case 'title':
-            elemId = `${field}Editor`
-            message = `An article with this title already exists.`
+            elemId = 'titleEditor'
+
+            if (error.field) {
+              message = `An article with this title already exists.`
+            }
+
+            break
+          case 'summary':
+            elemId = 'summaryEditor'
             break
           case 'previewImageFile':
             elemId = 'previewImage'
