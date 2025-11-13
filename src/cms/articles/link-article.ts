@@ -2,41 +2,45 @@ import {ArticlePreview} from "../../articles/components/article-preview";
 import {FullscreenSpinner} from "../../components/spinner";
 import {setup, toggleButton} from "./form-common";
 
-function toggleSubmitButton() {
-  toggleButton($('#publishTools > button[type=submit]'))
+function togglePublishButton() {
+  toggleButton($('#publishButton'), Boolean($('#url').val()))
 }
 
-function onSubmit(event): boolean {
-  const url = $('input[name=url]')
+function additionalValidation(event): boolean {
+  const url = $('#url')
   const urlInput = url.get(0) as HTMLInputElement
 
-  let valid = true
+  let validationMessage = null
 
-  if (!urlInput.validity.valid) {
-    url.siblings('.validation-message').css('display', '')
-    valid = false
+  if (urlInput.validity.typeMismatch) {
+    validationMessage = 'Link to article must be a URL.'
+  } else if (urlInput.validity.valueMissing) {
+    validationMessage = 'Article URL is required.'
+  } else if (!urlInput.validity.valid) {
+    validationMessage = 'Article URL is invalid.'
   }
 
-  const previewImage = $('#previewImage')
-  const previewImageInput = previewImage.get(0) as HTMLInputElement
-
-  if (!previewImageInput.validity.valid) {
-    previewImage.siblings('.validation-message').css('display', '')
-    valid = false
+  if (validationMessage) {
+    url.siblings('.validation-message')
+    .css('display', 'initial')
+    .text(validationMessage)
   }
 
-  return valid
+  return !Boolean(validationMessage)
+}
+
+function onInvalid() {
+  $('#publishButton').attr('disabled', 'disabled')
 }
 
 $(() => {
-  setup(toggleSubmitButton, onSubmit)
+  setup(togglePublishButton, additionalValidation, onInvalid)
 
-  $('input[name=url]').on('input', function () {
-    $(this).siblings('.validation-message').css('display', 'none')
-  })
-
-  $('#previewImage').on('change', function() {
-    $(this).siblings('.validation-message').css('display', 'none')
+  $('#url').on('input', function () {
+    const validationMessageElem = $(this).siblings('.validation-message')
+    validationMessageElem.css('display', '')
+    validationMessageElem.text('')
+    togglePublishButton()
   })
 })
 

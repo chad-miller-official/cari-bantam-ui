@@ -5,6 +5,10 @@ import {FullscreenSpinner} from "../../components/spinner";
 declare const _csrf: Csrf
 
 function deleteArticle(articleRow: JQuery<HTMLElement>) {
+  if (!confirm('Deleting an article cannot be undone. Are you sure you want to continue?')) {
+    return
+  }
+
   const axiosConfig = {
     withCredentials: true,
     xsrfHeaderName: _csrf.headerName,

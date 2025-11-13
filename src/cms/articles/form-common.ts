@@ -28,8 +28,8 @@ export function toggleButton(button: JQuery<HTMLButtonElement>, additionalChecks
       && ($('#previewImage').val()
           || ($('#articlePreview').get(0) as ArticlePreview).previewImageUrl)
       && $('#published').val()
-      && $('#articlePreview > [slot=title]').text()
-      && $('#articlePreview > [slot=summary]').text()
+      && $('#titleEditor').text()
+      && $('#summaryEditor').text()
       && (parseInt($('#author').val().toString()) > 0
           || $('#authorOverride').val())
   ) {
@@ -40,13 +40,71 @@ export function toggleButton(button: JQuery<HTMLButtonElement>, additionalChecks
   }
 }
 
-export function setup(toggleButtonFunc: () => void, preSubmitHook: (event) => boolean = () => true) {
+function recalculatePreviewImageMinDimensions() {
   const articlePreviewComponent = $('#articlePreview').get(0) as ArticlePreview
+
+  $('input[name=previewImageMinWidth]').val(articlePreviewComponent.clientWidth)
+  $('input[name=previewImageMinHeight]').val(articlePreviewComponent.clientHeight)
+
+  $('#previewImageMinWidth').text(articlePreviewComponent.clientWidth)
+
+  $('#previewImageMinHeight').text(articlePreviewComponent.clientHeight
+      - $('#titleEditor + .validation-message').get(0).clientHeight)
+}
+
+export function setup(
+    toggleButtonFunc: () => void,
+    additionalValidation: (event) => boolean = () => true,
+    onInvalid: () => void
+) {
+  const articlePreviewComponent = $('#articlePreview').get(0) as ArticlePreview
+  recalculatePreviewImageMinDimensions()
+
   const previewImage = $('#previewImage');
 
   previewImage.on('change', function () {
+    const validationMessage = $(this).siblings('.validation-message')
+    validationMessage.css('display', '')
+
     const files = (this as HTMLInputElement).files
-    articlePreviewComponent.previewImageUrl = files.length > 0 ? URL.createObjectURL(files[0]) : null
+
+    if (files.length > 0) {
+      const file = files[0]
+
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+
+        reader.onload = function (event) {
+          const image = new Image()
+
+          image.onload = function () {
+            const minWidth = parseInt($('#input[name=previewImageMinWidth]').val().toString())
+            const minHeight = parseInt($('#input[name=previewImageMinHeight]').val().toString())
+
+            if (image.naturalWidth < minWidth || image.naturalHeight < minHeight) {
+              articlePreviewComponent.previewImageUrl = null
+
+              validationMessage.css('display', 'initial')
+              .text(`Preview image must be at least ${minWidth}px by ${minHeight}px.`)
+            } else {
+              articlePreviewComponent.previewImageUrl = URL.createObjectURL(file)
+            }
+          }
+
+          image.src = event.target.result.toString()
+        }
+
+        reader.readAsDataURL(file)
+      } else {
+        articlePreviewComponent.previewImageUrl = null
+
+        validationMessage.css('display', 'initial')
+        .text('Preview image must be an image file.')
+      }
+    } else {
+      articlePreviewComponent.previewImageUrl = null
+    }
+
     toggleButtonFunc()
 
     $(this).prop('required', 'required')
@@ -119,7 +177,9 @@ export function setup(toggleButtonFunc: () => void, preSubmitHook: (event) => bo
     toggleButtonFunc()
   })
 
-  $('#publishButton').on('click', () => {
+  const publishButton = $('#publishButton')
+
+  publishButton.on('click', () => {
     $('#realPublished').val(published.val())
     $('#realAuthor').val(author.val())
     $('#realAuthorOverride').val(authorOverride.val())
@@ -163,24 +223,64 @@ export function setup(toggleButtonFunc: () => void, preSubmitHook: (event) => bo
     toggleButtonFunc()
   })
 
-  titleEditor.on('input', toggleButtonFunc)
+  titleEditor.on('input', function () {
+    $(this).siblings('.validation-message').css('display', '')
+    toggleButtonFunc()
+  })
 
   titleEditor.on('focusout', function () {
     $('#title').val($(this).text())
     resetPlaceholderText()
+    recalculatePreviewImageMinDimensions()
   })
 
-  summaryEditor.on('input', toggleButtonFunc)
+  summaryEditor.on('input', function () {
+    $(this).siblings('.validation-message').css('visibility', '')
+    toggleButtonFunc()
+  })
 
   summaryEditor.on('focusout', function () {
     $('#summary').val($(this).text())
     resetPlaceholderText()
+    recalculatePreviewImageMinDimensions()
   })
 
-  $('#articleForm').on('submit', function (event) {
-    if (preSubmitHook(event)) {
+  $('#articleForm').on('submit', function (event, data) {
+    let valid = true
+
+    if ((data || {validate: true}).validate !== false) {
+      valid = additionalValidation(event)
+
+      const previewImageInput = previewImage.get(0) as HTMLInputElement
+
+      if (!previewImageInput.validity.valid) {
+        previewImage.siblings('.validation-message')
+        .css('display', 'initial')
+        .text('Preview image is required.')
+
+        valid = false
+      }
+
+      if (!titleEditor.text()) {
+        titleEditor.siblings('.validation-message').css('display', 'initial')
+        valid = false
+      }
+
+      if (!summaryEditor.text()) {
+        summaryEditor.siblings('.validation-message').css('visibility', 'visible')
+        valid = false
+      }
+
+      if (parseInt(author.val().toString()) < 0 && !authorOverride.val()) {
+        authorOverride.siblings('.validation-message').css('display', 'initial')
+        valid = false
+      }
+    }
+
+    if (valid) {
       ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
     } else {
+      onInvalid()
       event.preventDefault()
     }
   })

@@ -24,12 +24,11 @@ export class ArticlePreview extends LitElement {
       background-size: cover;
       border-radius: 24px;
       display: flex;
-      margin-bottom: 1em;
       padding: 1em 2em;
       text-decoration: none;
     }
 
-    .article:hover {
+    .article-glow:hover {
       filter: brightness(1.1);
       transition: 0.2s ease-in;
     }
@@ -47,7 +46,7 @@ export class ArticlePreview extends LitElement {
     a {
       color: black;
     }
-    
+
     slot[name=summary] {
       font-size: smaller;
     }
@@ -74,6 +73,9 @@ export class ArticlePreview extends LitElement {
   @property()
   textColor: string = '#000000'
 
+  @property()
+  hoverEffect: string = 'glow'
+
   render() {
     const styles = {backgroundColor: this.backgroundColor}
 
@@ -94,15 +96,17 @@ export class ArticlePreview extends LitElement {
         <slot name="summary"></slot>
       </div>`
 
+    const hoverEffectClass = (this.hoverEffect == null || this.hoverEffect == 'none') ? '' : `article-${this.hoverEffect}`
+
     if (this.url) {
       return html`
-        <a href="${this.url}" class="article" style="${styleMap(styles)}">
+        <a href="${this.url}" class="article ${hoverEffectClass}" style="${styleMap(styles)}">
           ${articlePreview}
         </a>
       `
     } else {
       return html`
-        <div class="article" style="${styleMap(styles)}">
+        <div class="article ${hoverEffectClass}" style="${styleMap(styles)}">
           ${articlePreview}
         </div>`
     }
