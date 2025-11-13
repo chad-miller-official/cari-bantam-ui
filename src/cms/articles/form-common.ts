@@ -7,280 +7,327 @@ declare const originalAuthorName: string
 declare const originalPublished: string
 declare const originalPublishedString: string
 
-function clearAuthorOverride(hide: boolean = true, resetValue?: string) {
-  const authorOverride = $('#authorOverride')
-  authorOverride.val(resetValue)
-  authorOverride.removeAttr('required')
-  authorOverride.prop('placeholder', '')
-  authorOverride.prop('disabled', true)
-  authorOverride.css('display', hide ? 'none' : 'initial')
-}
+export class ArticleSetupObject {
+  submitButton: JQuery<HTMLButtonElement>
 
-function resetPlaceholderText() {
-  if (!$(this).text().trim().length) {
-    $(this).empty()
+  constructor(submitButtonSelector: string) {
+    this.submitButton = $(submitButtonSelector)
+  }
+
+  protected shouldEnableSubmitButton(): boolean {
+    return Boolean(($('#previewImage').val()
+            || getArticlePreviewComponent().previewImageUrl)
+        && $('#published').val()
+        && $('#titleEditor').text()
+        && $('#summaryEditor').text()
+        && (parseInt($('#author').val().toString()) > 0
+            || $('#authorOverride').val()))
+  }
+
+  protected disableSubmitButton() {
+    this.submitButton.attr('disabled', 'disabled')
+  }
+
+  public toggleSubmitButton() {
+    if (this.shouldEnableSubmitButton()) {
+      this.submitButton.removeAttr('disabled')
+      this.submitButton.removeProp('disabled')
+    } else {
+      this.disableSubmitButton()
+    }
+  }
+
+  public validate(): boolean {
+    let valid = true
+
+    const previewImage = $('#previewImage')
+    const previewImageInput = previewImage.get(0) as HTMLInputElement
+
+    if (!previewImageInput.validity.valid) {
+      previewImage.siblings('.validation-message')
+      .css('display', 'initial')
+      .text('Preview image is required.')
+
+      valid = false
+    }
+
+    const titleEditor = $('#titleEditor')
+
+    if (!titleEditor.text()) {
+      titleEditor.siblings('.validation-message').css('display', 'initial')
+      valid = false
+    }
+
+    const summaryEditor = $('#summaryEditor')
+
+    if (!summaryEditor.text()) {
+      summaryEditor.siblings('.validation-message').css('visibility', 'visible')
+      valid = false
+    }
+
+    const authorOverride = $('#authorOverride')
+
+    if (parseInt($('#author').val().toString()) < 0 && !authorOverride.val()) {
+      authorOverride.siblings('.validation-message').css('display', 'initial')
+      valid = false
+    }
+
+    return valid
+  }
+
+  public onFormInvalid() {
+    this.disableSubmitButton()
   }
 }
 
-export function toggleButton(button: JQuery<HTMLButtonElement>, additionalChecks: boolean = true) {
-  if (
-      additionalChecks
-      && ($('#previewImage').val()
-          || ($('#articlePreview').get(0) as ArticlePreview).previewImageUrl)
-      && $('#published').val()
-      && $('#titleEditor').text()
-      && $('#summaryEditor').text()
-      && (parseInt($('#author').val().toString()) > 0
-          || $('#authorOverride').val())
-  ) {
-    button.removeAttr('disabled')
-    button.removeProp('disabled')
-  } else {
-    button.attr('disabled', 'disabled')
+function clearAuthorOverride(hide: boolean = true, resetValue?: string) {
+  $('#authorOverride')
+  .val(resetValue)
+  .removeAttr('required')
+  .prop('placeholder', '')
+  .prop('disabled', true)
+  .css('display', hide ? 'none' : 'initial')
+}
+
+function getArticlePreviewComponent() {
+  return $('#articlePreview').get(0) as ArticlePreview
+}
+
+function resetPlaceholderText(elem: JQuery<HTMLElement>) {
+  if (!elem.text().trim().length) {
+    elem.empty()
   }
 }
 
 function recalculatePreviewImageMinDimensions() {
-  const articlePreviewComponent = $('#articlePreview').get(0) as ArticlePreview
+  const articlePreviewComponent = getArticlePreviewComponent()
 
-  $('input[name=previewImageMinWidth]').val(articlePreviewComponent.clientWidth)
-  $('input[name=previewImageMinHeight]').val(articlePreviewComponent.clientHeight)
+  let minWidth = articlePreviewComponent.clientWidth
+  let minHeight = articlePreviewComponent.clientHeight - $('#titleEditor + .validation-message').get(0).clientHeight
 
-  $('#previewImageMinWidth').text(articlePreviewComponent.clientWidth)
+  minWidth = Math.ceil(minWidth / 100) * 100
+  minHeight = Math.ceil(minHeight / 100) * 100
 
-  $('#previewImageMinHeight').text(articlePreviewComponent.clientHeight
-      - $('#titleEditor + .validation-message').get(0).clientHeight)
+  $('#previewImageMinWidth')
+  .val(minWidth)
+  .css('width', `${minWidth.toString().length}ch`)
+
+  $('#previewImageMinHeight').val(minHeight)
+  .css('width', `${minHeight.toString().length}ch`)
 }
 
-export function setup(
-    toggleButtonFunc: () => void,
-    additionalValidation: (event) => boolean = () => true,
-    onInvalid: () => void
-) {
-  const articlePreviewComponent = $('#articlePreview').get(0) as ArticlePreview
-  recalculatePreviewImageMinDimensions()
+function handlePreviewImageChange(event) {
+  const validationMessage = $(this).siblings('.validation-message')
+  validationMessage.css('display', '')
 
-  const previewImage = $('#previewImage');
+  const files = (this as HTMLInputElement).files
+  const articlePreviewComponent = getArticlePreviewComponent()
 
-  previewImage.on('change', function () {
-    const validationMessage = $(this).siblings('.validation-message')
-    validationMessage.css('display', '')
+  if (files.length > 0) {
+    const file = files[0]
 
-    const files = (this as HTMLInputElement).files
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
 
-    if (files.length > 0) {
-      const file = files[0]
+      reader.onload = (event) => {
+        const image = new Image()
 
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader()
+        image.onload = () => {
+          const minWidth = parseInt($('#previewImageMinWidth').val().toString())
+          const minHeight = parseInt($('#previewImageMinHeight').val().toString())
 
-        reader.onload = function (event) {
-          const image = new Image()
+          if (image.naturalWidth < minWidth || image.naturalHeight < minHeight) {
+            articlePreviewComponent.previewImageUrl = null
 
-          image.onload = function () {
-            const minWidth = parseInt($('#input[name=previewImageMinWidth]').val().toString())
-            const minHeight = parseInt($('#input[name=previewImageMinHeight]').val().toString())
-
-            if (image.naturalWidth < minWidth || image.naturalHeight < minHeight) {
-              articlePreviewComponent.previewImageUrl = null
-
-              validationMessage.css('display', 'initial')
-              .text(`Preview image must be at least ${minWidth}px by ${minHeight}px.`)
-            } else {
-              articlePreviewComponent.previewImageUrl = URL.createObjectURL(file)
-            }
+            validationMessage.css('display', 'initial')
+            .text(`Preview image must be at least ${minWidth}px by ${minHeight}px.`)
+          } else {
+            articlePreviewComponent.previewImageUrl = URL.createObjectURL(file)
           }
-
-          image.src = event.target.result.toString()
         }
 
-        reader.readAsDataURL(file)
-      } else {
-        articlePreviewComponent.previewImageUrl = null
-
-        validationMessage.css('display', 'initial')
-        .text('Preview image must be an image file.')
+        image.src = event.target.result.toString()
       }
+
+      reader.readAsDataURL(file)
     } else {
       articlePreviewComponent.previewImageUrl = null
+
+      validationMessage.css('display', 'initial')
+      .text('Preview image must be an image file.')
     }
+  } else {
+    articlePreviewComponent.previewImageUrl = null
+  }
 
-    toggleButtonFunc()
+  $(this).prop('required', 'required')
+  $('label[for=previewImage]').addClass('required')
 
-    $(this).prop('required', 'required')
-    $('label[for=previewImage]').addClass('required')
-  })
+  event.data.setupObject.toggleSubmitButton()
+}
 
-  const titleEditor = $('#titleEditor')
-  const summaryEditor = $('#summaryEditor')
+function handleBackgroundColorHexChange(event) {
+  const articlePreviewComponent = getArticlePreviewComponent()
 
-  const backgroundColorHex = $('#backgroundColorHex')
-  const textColorHex = $('#textColorHex')
+  const bgColor = $(this).val().toString()
+  articlePreviewComponent.backgroundColor = bgColor
 
-  backgroundColorHex.on('change', function () {
-    const bgColor = $(this).val().toString()
-    articlePreviewComponent.backgroundColor = bgColor
+  const textColor = invertColor(bgColor)
+  articlePreviewComponent.textColor = textColor
 
-    const textColor = invertColor(bgColor)
-    articlePreviewComponent.textColor = textColor
-    textColorHex.val(textColor)
+  $('#textColorHex').val(textColor)
+  $('#titleEditor').css('color', textColor).attr('data-color', `${textColor}d0`)
+  $('#summaryEditor').css('color', textColor).attr('data-color', `${textColor}d0`)
 
-    titleEditor.css('color', textColor)
-    titleEditor.attr('data-color', `${textColor}d0`)
-    summaryEditor.css('color', textColor)
-    summaryEditor.attr('data-color', `${textColor}d0`)
+  event.data.setupObject.toggleSubmitButton()
+}
 
-    toggleButtonFunc()
-  })
+function handleAuthorChange(event) {
+  const articlePreviewComponent = getArticlePreviewComponent()
+
+  if ($(this).val() === '-1') {
+    $('#authorOverride')
+    .removeAttr('disabled')
+    .attr('required', 'required')
+    .prop('placeholder', 'Enter author name...')
+    .css('display', 'initial')
+
+    articlePreviewComponent.author = null
+  } else {
+    clearAuthorOverride()
+
+    const selectedOption = $(this).children('option:selected')
+    articlePreviewComponent.author = selectedOption.text()
+  }
+
+  event.data.setupObject.toggleSubmitButton()
+}
+
+function handlePublishedChange(event) {
+  const selectedDate = (this as HTMLInputElement).valueAsDate
+  let dateString: string
+
+  if (selectedDate) {
+    const year = selectedDate.getUTCFullYear()
+    const month = selectedDate.getUTCMonth()
+    const day = selectedDate.getUTCDate()
+    dateString = dateToString(new Date(year, month, day))
+  } else {
+    dateString = null
+  }
+
+  getArticlePreviewComponent().published = dateString
+  event.data.setupObject.toggleSubmitButton()
+}
+
+function handlePublisherOverrideChange(event) {
+  const isChecked = $(this).prop('checked')
 
   const author = $('#author')
-  const authorOverride = $('#authorOverride')
-
-  author.on('change', function () {
-    if ($(this).val() === '-1') {
-      authorOverride.removeAttr('disabled')
-      authorOverride.attr('required', 'required')
-      authorOverride.prop('placeholder', 'Enter author name...')
-      authorOverride.css('display', 'initial')
-      articlePreviewComponent.author = null
-    } else {
-      clearAuthorOverride()
-
-      const selectedOption = $(this).children('option:selected')
-      articlePreviewComponent.author = selectedOption.text()
-    }
-
-    toggleButtonFunc()
-  })
-
-  authorOverride.on('change', function () {
-    articlePreviewComponent.author = $(this).val().toString()
-    toggleButtonFunc()
-  })
+  author.prop('disabled', !isChecked)
 
   const published = $('#published')
+  published.prop('disabled', !isChecked)
 
-  published.on('change', function () {
-    const selectedDate = (this as HTMLInputElement).valueAsDate
-    let dateString: string
+  const authorLabel = $('label[for=author]')
+  const publishedLabel = $('label[for=published]')
 
-    if (selectedDate) {
-      const year = selectedDate.getUTCFullYear()
-      const month = selectedDate.getUTCMonth()
-      const day = selectedDate.getUTCDate()
-      dateString = dateToString(new Date(year, month, day))
+  if (isChecked) {
+    authorLabel.removeClass('disabled-label')
+    authorLabel.addClass('required')
+    publishedLabel.removeClass('disabled-label')
+    publishedLabel.addClass('required')
+
+    if (author.val() === '-1') {
+      $('#authorOverride').removeAttr('disabled')
     } else {
-      dateString = null
+      clearAuthorOverride()
     }
+  } else {
+    authorLabel.addClass('disabled-label')
+    authorLabel.removeClass('required')
+    publishedLabel.addClass('disabled-label')
+    publishedLabel.removeClass('required')
 
-    articlePreviewComponent.published = dateString
-    toggleButtonFunc()
+    clearAuthorOverride(originalAuthor !== null, originalAuthor === null ? originalAuthorName : null)
+
+    author.val(originalAuthor === null ? '-1' : originalAuthor)
+    published.val(originalPublished)
+
+    const articlePreviewComponent = getArticlePreviewComponent()
+    articlePreviewComponent.author = originalAuthorName
+    articlePreviewComponent.published = originalPublishedString
+  }
+
+  event.data.setupObject.toggleSubmitButton()
+}
+
+export function setup(setupObject: ArticleSetupObject) {
+  recalculatePreviewImageMinDimensions()
+
+  $('#previewImage').on('change', {setupObject: setupObject}, handlePreviewImageChange)
+  $('#backgroundColorHex').on('change', {setupObject: setupObject}, handleBackgroundColorHexChange)
+
+  const published = $('#published')
+  published.on('change', {setupObject: setupObject}, handlePublishedChange)
+
+  const author = $('#author')
+  author.on('change', {setupObject: setupObject}, handleAuthorChange)
+
+  const authorOverride = $('#authorOverride')
+
+  authorOverride.on('change', function () {
+    getArticlePreviewComponent().author = $(this).val().toString()
+    setupObject.toggleSubmitButton()
   })
 
-  const publishButton = $('#publishButton')
+  $('#publisherOverride').on('change', {setupObject: setupObject}, handlePublisherOverrideChange)
 
-  publishButton.on('click', () => {
+  const titleEditor = $('#titleEditor')
+
+  titleEditor.on('input', function () {
+    $(this).siblings('.validation-message').css('display', '')
+    setupObject.toggleSubmitButton()
+  })
+
+  titleEditor.on('focusout', function () {
+    $('#title').val($(this).text())
+    resetPlaceholderText($(this))
+    recalculatePreviewImageMinDimensions()
+  })
+
+  const summaryEditor = $('#summaryEditor')
+
+  summaryEditor.on('input', function () {
+    $(this).siblings('.validation-message').css('visibility', '')
+    setupObject.toggleSubmitButton()
+  })
+
+  summaryEditor.on('focusout', function () {
+    $('#summary').val($(this).text())
+    resetPlaceholderText($(this))
+    recalculatePreviewImageMinDimensions()
+  })
+
+  $('#publishButton').on('click', () => {
     $('#realPublished').val(published.val())
     $('#realAuthor').val(author.val())
     $('#realAuthorOverride').val(authorOverride.val())
   })
 
-  $('#publisherOverride').on('change', function () {
-    const isChecked = $(this).prop('checked')
+  $('#articleForm').on('submit', (event, data) => {
+    const doValidate = (data || {validate: true}).validate !== false
 
-    author.prop('disabled', !isChecked)
-    published.prop('disabled', !isChecked)
-
-    const authorLabel = $('label[for=author]')
-    const publishedLabel = $('label[for=published]')
-
-    if (isChecked) {
-      authorLabel.removeClass('disabled-label')
-      authorLabel.addClass('required')
-      publishedLabel.removeClass('disabled-label')
-      publishedLabel.addClass('required')
-
-      if (author.val() === '-1') {
-        authorOverride.removeAttr('disabled')
-      } else {
-        clearAuthorOverride()
-      }
-    } else {
-      authorLabel.addClass('disabled-label')
-      authorLabel.removeClass('required')
-      publishedLabel.addClass('disabled-label')
-      publishedLabel.removeClass('required')
-
-      clearAuthorOverride(originalAuthor !== null, originalAuthor === null ? originalAuthorName : null)
-
-      author.val(originalAuthor === null ? '-1' : originalAuthor)
-      published.val(originalPublished)
-
-      articlePreviewComponent.author = originalAuthorName
-      articlePreviewComponent.published = originalPublishedString
+    if (!doValidate) {
+      $('#previewImage').attr('disabled', 'disabled')
     }
 
-    toggleButtonFunc()
-  })
-
-  titleEditor.on('input', function () {
-    $(this).siblings('.validation-message').css('display', '')
-    toggleButtonFunc()
-  })
-
-  titleEditor.on('focusout', function () {
-    $('#title').val($(this).text())
-    resetPlaceholderText()
-    recalculatePreviewImageMinDimensions()
-  })
-
-  summaryEditor.on('input', function () {
-    $(this).siblings('.validation-message').css('visibility', '')
-    toggleButtonFunc()
-  })
-
-  summaryEditor.on('focusout', function () {
-    $('#summary').val($(this).text())
-    resetPlaceholderText()
-    recalculatePreviewImageMinDimensions()
-  })
-
-  $('#articleForm').on('submit', function (event, data) {
-    let valid = true
-
-    if ((data || {validate: true}).validate !== false) {
-      valid = additionalValidation(event)
-
-      const previewImageInput = previewImage.get(0) as HTMLInputElement
-
-      if (!previewImageInput.validity.valid) {
-        previewImage.siblings('.validation-message')
-        .css('display', 'initial')
-        .text('Preview image is required.')
-
-        valid = false
-      }
-
-      if (!titleEditor.text()) {
-        titleEditor.siblings('.validation-message').css('display', 'initial')
-        valid = false
-      }
-
-      if (!summaryEditor.text()) {
-        summaryEditor.siblings('.validation-message').css('visibility', 'visible')
-        valid = false
-      }
-
-      if (parseInt(author.val().toString()) < 0 && !authorOverride.val()) {
-        authorOverride.siblings('.validation-message').css('display', 'initial')
-        valid = false
-      }
-    }
+    const valid = doValidate ? setupObject.validate() : true
 
     if (valid) {
       ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
     } else {
-      onInvalid()
+      setupObject.onFormInvalid()
       event.preventDefault()
     }
   })
