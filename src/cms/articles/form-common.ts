@@ -1,6 +1,7 @@
 import {ArticlePreview} from "../../articles/components/article-preview";
 import {dateToString, invertColor} from "../../util";
 import {FullscreenSpinner} from "../../components/spinner";
+import {RedirectResponse, ValidationException} from "../types";
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
@@ -265,7 +266,6 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
   event.preventDefault()
 
   const doValidate = (data || {validate: true}).validate !== false
-  const method = (data || {method: formMethod || 'POST'}).method
   const valid = doValidate ? setupObject.validate() : true
 
   if (valid) {
@@ -277,25 +277,18 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
       data: new FormData(form.get(0)),
       processData: false,
       contentType: false,
-      method,
-      success: (res) => window.location = res.redirectTo,
+      method: (data || {method: formMethod || 'POST'}).method,
+      success: (res: RedirectResponse) => window.location = res.redirectTo,
       error: (jqXHR) => {
-        const error = jqXHR.responseJSON
-        const field = error.field
+        const error = jqXHR.responseJSON as ValidationException
 
-        let elemId = field
-        let message = error.message
+        let elemId = error.fieldName
         let validationMessageCssProp = 'display'
         let validationMessageCssValue = 'initial'
 
-        switch (field) {
+        switch (elemId) {
           case 'title':
             elemId = 'titleEditor'
-
-            if (error.value) {
-              message = `An article with this title already exists.`
-            }
-
             break
           case 'summary':
             elemId = 'summaryEditor'
@@ -308,7 +301,7 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
         }
 
         $(`#${elemId}`).parent().children('.validation-message')
-        .css(validationMessageCssProp, validationMessageCssValue).text(message)
+        .css(validationMessageCssProp, validationMessageCssValue).text(error.message)
 
         spinner.close()
         setupObject.onFormInvalid()
