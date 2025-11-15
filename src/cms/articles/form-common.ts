@@ -265,6 +265,10 @@ function handlePublisherOverrideChange(event) {
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
 
+  $('#realPublished').val($('#published').val())
+  $('#realAuthor').val($('#author').val())
+  $('#realAuthorOverride').val($('#authorOverride').val())
+
   const doValidate = (data || {validate: true}).validate !== false
   const valid = doValidate ? setupObject.validate() : true
 
@@ -359,12 +363,6 @@ export function setup(setupObject: ArticleSetupObject) {
     $('#summary').val($(this).text())
     resetPlaceholderText($(this))
     recalculatePreviewImageMinDimensions()
-  })
-
-  $('#publishButton').on('click', () => {
-    $('#realPublished').val(published.val())
-    $('#realAuthor').val(author.val())
-    $('#realAuthorOverride').val(authorOverride.val())
   })
 
   $('#articleForm').on('submit', function (event, data) {
