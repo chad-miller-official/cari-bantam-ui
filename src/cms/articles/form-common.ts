@@ -80,6 +80,10 @@ export class ArticleSetupObject {
   public onFormInvalid() {
     this.disableSubmitButton()
   }
+
+  public cancel() {
+    window.location.href = '/cms/articles'
+  }
 }
 
 function clearAuthorOverride(hide: boolean = true, resetValue?: string) {
@@ -282,30 +286,38 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
       processData: false,
       contentType: false,
       method: (data || {method: formMethod || 'POST'}).method,
-      success: (res: RedirectResponse) => window.location = res.redirectTo,
+      success: (res: RedirectResponse) => window.location.href = res.redirectTo,
       error: (jqXHR) => {
-        const error = jqXHR.responseJSON as ValidationException
-
-        let elemId = error.fieldName
+        let elemId = ''
         let validationMessageCssProp = 'display'
         let validationMessageCssValue = 'initial'
+        let errorMessage = ''
 
-        switch (elemId) {
-          case 'title':
-            elemId = 'titleEditor'
-            break
-          case 'summary':
-            elemId = 'summaryEditor'
-            validationMessageCssProp = 'visibility'
-            validationMessageCssValue = 'visible'
-            break
-          case 'previewImageFile':
-            elemId = 'previewImage'
-            break
+        if (jqXHR.status == 413) {
+          elemId = 'body'
+          errorMessage = 'Post too large. Please remove and re-insert all embedded media via the Insert drop-down menu in the toolbar.'
+        } else {
+          const error = jqXHR.responseJSON as ValidationException
+          elemId = error.fieldName
+          errorMessage = error.message
+
+          switch (elemId) {
+            case 'title':
+              elemId = 'titleEditor'
+              break
+            case 'summary':
+              elemId = 'summaryEditor'
+              validationMessageCssProp = 'visibility'
+              validationMessageCssValue = 'visible'
+              break
+            case 'previewImageFile':
+              elemId = 'previewImage'
+              break
+          }
         }
 
         $(`#${elemId}`).parent().children('.validation-message')
-        .css(validationMessageCssProp, validationMessageCssValue).text(error.message)
+        .css(validationMessageCssProp, validationMessageCssValue).text(errorMessage)
 
         spinner.close()
         setupObject.onFormInvalid()
@@ -319,25 +331,16 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
 export function setup(setupObject: ArticleSetupObject) {
   recalculatePreviewImageMinDimensions()
 
-  const previewImage = $('#previewImage')
-  previewImage.on('change', {setupObject: setupObject}, handlePreviewImageChange)
-
+  $('#previewImage').on('change', {setupObject: setupObject}, handlePreviewImageChange)
   $('#backgroundColorHex').on('change', {setupObject: setupObject}, handleBackgroundColorHexChange)
+  $('#publisherOverride').on('change', {setupObject: setupObject}, handlePublisherOverrideChange)
+  $('#published').on('change', {setupObject: setupObject}, handlePublishedChange)
+  $('#author').on('change', {setupObject: setupObject}, handleAuthorChange)
 
-  const published = $('#published')
-  published.on('change', {setupObject: setupObject}, handlePublishedChange)
-
-  const author = $('#author')
-  author.on('change', {setupObject: setupObject}, handleAuthorChange)
-
-  const authorOverride = $('#authorOverride')
-
-  authorOverride.on('change', function () {
+  $('#authorOverride').on('change', function () {
     getArticlePreviewComponent().author = $(this).val().toString()
     setupObject.toggleSubmitButton()
   })
-
-  $('#publisherOverride').on('change', {setupObject: setupObject}, handlePublisherOverrideChange)
 
   const titleEditor = $('#titleEditor')
 
@@ -368,4 +371,6 @@ export function setup(setupObject: ArticleSetupObject) {
   $('#articleForm').on('submit', function (event, data) {
     handleSubmit(event, data, $(this) as JQuery<HTMLFormElement>, setupObject)
   })
+
+  $('#cancelButton').on('click', () => setupObject.cancel())
 }

@@ -11,6 +11,8 @@ declare const tinymce: {
   }
 }
 
+let warnOnCancel = false
+
 class WriteArticleSetupObject extends ArticleSetupObject {
   constructor() {
     super('#previewButton')
@@ -50,9 +52,19 @@ class WriteArticleSetupObject extends ArticleSetupObject {
     super.onFormInvalid()
     $('#publishButton').attr('disabled', 'disabled')
   }
+
+  public cancel() {
+    if (warnOnCancel) {
+      if (confirm('You have unsaved changes that will be lost. Cancel writing?')) {
+        super.cancel()
+      }
+    }
+  }
 }
 
 function handlePreviewButtonClick() {
+  warnOnCancel = true
+
   $('#publishTools .tooltip').removeClass("tooltip")
   $('#publishButton').removeAttr("disabled")
 

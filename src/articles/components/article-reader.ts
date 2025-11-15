@@ -50,8 +50,6 @@ export class ArticleReader extends LitElement {
   @property()
   textColor: string = '#000000'
 
-  
-
   render() {
     const styles = {
       color: this.textColor,

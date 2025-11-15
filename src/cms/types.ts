@@ -1,5 +1,5 @@
 export type RedirectResponse = {
-  redirectTo: string & Location,
+  redirectTo: string,
 }
 
 export type ValidationException = {
