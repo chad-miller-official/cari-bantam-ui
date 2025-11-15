@@ -62,7 +62,9 @@ class WriteArticleSetupObject extends ArticleSetupObject {
   }
 }
 
-function handlePreviewButtonClick() {
+function handlePreviewButtonClick(event) {
+  event.preventDefault()
+
   $('#publishTools .tooltip').removeClass("tooltip")
   $('#publishButton').removeAttr("disabled")
 

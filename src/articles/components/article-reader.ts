@@ -12,17 +12,17 @@ export class ArticleReader extends LitElement {
       margin: auto;
       padding: 0;
     }
-    
+
     .body {
       padding: 1em;
     }
-    
+
     .header {
       background-position: center;
       background-size: cover;
       padding: 2em 2em 5em 2em;
     }
-    
+
     .header h1, h3 {
       margin: revert;
       width: 50%;
@@ -50,10 +50,18 @@ export class ArticleReader extends LitElement {
   @property()
   textColor: string = '#000000'
 
+  @property({type: Boolean, attribute: 'data-round-edges'})
+  roundEdges: Boolean = false
+
   render() {
     const styles = {
       color: this.textColor,
       backgroundImage: `linear-gradient(transparent, transparent 50%, white), linear-gradient(to right, ${this.backgroundColor} 40%, transparent 75%), url(${this.previewImageUrl})`
+    }
+
+    if (this.roundEdges) {
+      styles['borderTopLeftRadius'] = '20px'
+      styles['borderTopRightRadius'] = '20px'
     }
 
     let originallyPublishedAt = null
