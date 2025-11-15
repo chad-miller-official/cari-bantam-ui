@@ -9,6 +9,12 @@ declare const originalPublished: string
 declare const originalPublishedString: string
 declare const formMethod: string
 
+export enum SubmitMode {
+  SAVE, PUBLISH
+}
+
+let changeDetected = false
+
 export class ArticleSetupObject {
   submitButton: JQuery<HTMLButtonElement>
 
@@ -82,7 +88,17 @@ export class ArticleSetupObject {
   }
 
   public cancel() {
-    window.location.href = '/cms/articles'
+    if (!changeDetected || confirm('You have unsaved changes that will be lost. Cancel editing?')) {
+      window.location.href = '/cms/articles'
+    }
+  }
+
+  public triggerChangeDetected() {
+    changeDetected = true
+  }
+
+  public resetChangeDetected() {
+    changeDetected = false
   }
 }
 
@@ -149,7 +165,9 @@ function handlePreviewImageChange(event) {
             articlePreviewComponent.previewImageUrl = URL.createObjectURL(file)
           }
 
-          event.data.setupObject.toggleSubmitButton()
+          const setupObject = event.data.setupObject
+          setupObject.triggerChangeDetected()
+          setupObject.toggleSubmitButton()
         }
 
         image.src = progressEvent.target.result.toString()
@@ -172,7 +190,6 @@ function handlePreviewImageChange(event) {
 
 function handleBackgroundColorHexChange(event) {
   const articlePreviewComponent = getArticlePreviewComponent()
-
   const bgColor = $(this).val().toString()
   articlePreviewComponent.backgroundColor = bgColor
 
@@ -183,7 +200,9 @@ function handleBackgroundColorHexChange(event) {
   $('#titleEditor').css('color', textColor).attr('data-color', `${textColor}d0`)
   $('#summaryEditor').css('color', textColor).attr('data-color', `${textColor}d0`)
 
-  event.data.setupObject.toggleSubmitButton()
+  const setupObject = event.data.setupObject
+  setupObject.triggerChangeDetected()
+  setupObject.toggleSubmitButton()
 }
 
 function handleAuthorChange(event) {
@@ -204,7 +223,9 @@ function handleAuthorChange(event) {
     articlePreviewComponent.author = selectedOption.text()
   }
 
-  event.data.setupObject.toggleSubmitButton()
+  const setupObject = event.data.setupObject
+  setupObject.triggerChangeDetected()
+  setupObject.toggleSubmitButton()
 }
 
 function handlePublishedChange(event) {
@@ -221,7 +242,10 @@ function handlePublishedChange(event) {
   }
 
   getArticlePreviewComponent().published = dateString
-  event.data.setupObject.toggleSubmitButton()
+
+  const setupObject = event.data.setupObject
+  setupObject.triggerChangeDetected()
+  setupObject.toggleSubmitButton()
 }
 
 function handlePublisherOverrideChange(event) {
@@ -263,18 +287,27 @@ function handlePublisherOverrideChange(event) {
     articlePreviewComponent.published = originalPublishedString
   }
 
-  event.data.setupObject.toggleSubmitButton()
+  const setupObject = event.data.setupObject
+  setupObject.triggerChangeDetected()
+  setupObject.toggleSubmitButton()
 }
 
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
 
-  $('#realPublished').val($('#published').val())
+  const submitMode = (data || {mode: SubmitMode.PUBLISH}).mode
+
+  if (submitMode === SubmitMode.PUBLISH) {
+    $('#realPublished').val($('#published').val())
+  }
+
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
 
-  const doValidate = (data || {validate: true}).validate !== false
-  const valid = doValidate ? setupObject.validate() : true
+  const defaultOnSuccess = (res: RedirectResponse) => window.location.href = res.redirectTo
+  const onSuccess = (data || {onSuccess: defaultOnSuccess}).onSuccess
+
+  const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
 
   if (valid) {
     const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
@@ -285,8 +318,8 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
       data: new FormData(form.get(0)),
       processData: false,
       contentType: false,
-      method: (data || {method: formMethod || 'POST'}).method,
-      success: (res: RedirectResponse) => window.location.href = res.redirectTo,
+      method: submitMode === SubmitMode.SAVE ? 'put' : 'post',
+      success: onSuccess,
       error: (jqXHR) => {
         let elemId = ''
         let validationMessageCssProp = 'display'
@@ -338,6 +371,7 @@ export function setup(setupObject: ArticleSetupObject) {
   $('#author').on('change', {setupObject: setupObject}, handleAuthorChange)
 
   $('#authorOverride').on('change', function () {
+    setupObject.triggerChangeDetected()
     getArticlePreviewComponent().author = $(this).val().toString()
     setupObject.toggleSubmitButton()
   })
@@ -346,6 +380,7 @@ export function setup(setupObject: ArticleSetupObject) {
 
   titleEditor.on('input', function () {
     $(this).siblings('.validation-message').css('display', '')
+    setupObject.triggerChangeDetected()
     setupObject.toggleSubmitButton()
   })
 
@@ -359,6 +394,7 @@ export function setup(setupObject: ArticleSetupObject) {
 
   summaryEditor.on('input', function () {
     $(this).siblings('.validation-message').css('visibility', '')
+    setupObject.triggerChangeDetected()
     setupObject.toggleSubmitButton()
   })
 

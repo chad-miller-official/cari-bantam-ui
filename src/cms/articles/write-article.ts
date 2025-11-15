@@ -1,17 +1,19 @@
 import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
-import {setup, ArticleSetupObject} from "./form-common";
+import {
+  setup,
+  ArticleSetupObject, SubmitMode,
+} from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
 
 // Avoid having to import tinymce within this file
 declare const tinymce: {
   activeEditor: {
-    getContent: () => string
-    save: () => void
-  }
+    getContent: () => string;
+    save: () => void;
+    on: (arg0: string, arg1: () => void) => void;
+  };
 }
-
-let warnOnCancel = false
 
 class WriteArticleSetupObject extends ArticleSetupObject {
   constructor() {
@@ -53,18 +55,14 @@ class WriteArticleSetupObject extends ArticleSetupObject {
     $('#publishButton').attr('disabled', 'disabled')
   }
 
-  public cancel() {
-    if (warnOnCancel) {
-      if (confirm('You have unsaved changes that will be lost. Cancel writing?')) {
-        super.cancel()
-      }
-    }
+  public triggerChangeDetected() {
+    super.triggerChangeDetected()
+    $('#saveButton').removeAttr('disabled')
+    $('#saveMessage').css('display', '')
   }
 }
 
 function handlePreviewButtonClick() {
-  warnOnCancel = true
-
   $('#publishTools .tooltip').removeClass("tooltip")
   $('#publishButton').removeAttr("disabled")
 
@@ -109,16 +107,27 @@ $(() => {
     },
   })
 
+  tinymce.activeEditor.on('input', () => setupObject.triggerChangeDetected())
+  $('#originalPublicationUrl').on('input', () => setupObject.triggerChangeDetected())
+
   setup(setupObject)
 
   $('#modal').on('close', () => $('body').css('overflow', 'initial'))
   $('#previewButton').on('click', handlePreviewButtonClick)
-  $('#saveButton').on('click', () => {
+
+  const saveButton = $('#saveButton')
+
+  saveButton.on('click', function () {
     tinymce.activeEditor.save()
 
     $('#articleForm').trigger('submit', {
-      validate: false,
-      method: 'put'
+      mode: SubmitMode.SAVE,
+      onSuccess: () => {
+        saveButton.attr('disabled', 'disabled')
+        setupObject.resetChangeDetected();
+        ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
+        $('#saveMessage').css('display', 'initial')
+      },
     })
   })
 })

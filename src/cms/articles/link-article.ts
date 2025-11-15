@@ -42,9 +42,12 @@ $(() => {
   setup(setupObject)
 
   $('#url').on('input', function () {
+    setupObject.triggerChangeDetected()
+
     const validationMessageElem = $(this).siblings('.validation-message')
     validationMessageElem.css('display', '')
     validationMessageElem.text('')
+
     setupObject.toggleSubmitButton()
   })
 })
