@@ -299,6 +299,7 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
 
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
+  $('#realPublished').val($('#published').val())
 
   const defaultOnSuccess = (res: RedirectResponse) => window.location.href = res.redirectTo
   const onSuccess = (data || {onSuccess: defaultOnSuccess}).onSuccess
