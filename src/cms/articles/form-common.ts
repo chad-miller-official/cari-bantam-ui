@@ -7,10 +7,10 @@ declare const originalAuthor: string
 declare const originalAuthorName: string
 declare const originalPublished: string
 declare const originalPublishedString: string
-declare const formMethod: string
 
 export enum SubmitMode {
-  SAVE, PUBLISH
+  SAVE = 'SAVE',
+  PUBLISH = 'PUBLISH',
 }
 
 let changeDetected = false
@@ -307,7 +307,7 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
   const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
 
   const formData = new FormData(form.get(0))
-  formData.set('doPublish', (submitMode === SubmitMode.PUBLISH).toString())
+  formData.set('submitMode', submitMode.toString())
 
   if (valid) {
     const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
