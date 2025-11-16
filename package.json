@@ -22,6 +22,7 @@
   },
   "scripts": {
     "build": "webpack",
-    "postinstall": "node ./postinstall.js"
+    "postinstall": "node ./postinstall.js",
+    "local-cdn": "./local-cdn.sh"
   }
 }
