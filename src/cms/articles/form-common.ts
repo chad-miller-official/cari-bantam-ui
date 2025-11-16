@@ -297,10 +297,6 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
 
   const submitMode = (data || {mode: SubmitMode.PUBLISH}).mode
 
-  if (submitMode === SubmitMode.PUBLISH) {
-    $('#realPublished').val($('#published').val())
-  }
-
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
 
@@ -309,13 +305,16 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
 
   const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
 
+  const formData = new FormData(form.get(0))
+  formData.set('doPublish', (submitMode === SubmitMode.PUBLISH).toString())
+
   if (valid) {
     const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
     spinner.showModal()
 
     $.ajax({
       url: form.attr('action'),
-      data: new FormData(form.get(0)),
+      data: formData,
       processData: false,
       contentType: false,
       method: submitMode === SubmitMode.SAVE ? 'put' : 'post',
