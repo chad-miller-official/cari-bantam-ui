@@ -24,6 +24,16 @@ class WriteArticleSetupObject extends ArticleSetupObject {
     return tinymce.activeEditor.getContent() && super.shouldEnableSubmitButton()
   }
 
+  private resetPublishButton() {
+    $('#publishButton').attr('disabled', 'disabled')
+    $('#submitButtonTooltip > :first-child').css("display", "initial")
+  }
+
+  public toggleSubmitButton() {
+    super.toggleSubmitButton()
+    this.resetPublishButton()
+  }
+
   public validate(): boolean {
     let valid = super.validate()
 
@@ -52,7 +62,7 @@ class WriteArticleSetupObject extends ArticleSetupObject {
 
   public onFormInvalid() {
     super.onFormInvalid()
-    $('#publishButton').attr('disabled', 'disabled')
+    this.resetPublishButton()
   }
 
   public triggerChangeDetected() {
@@ -65,7 +75,7 @@ class WriteArticleSetupObject extends ArticleSetupObject {
 function handlePreviewButtonClick(event) {
   event.preventDefault()
 
-  $('#publishTools .tooltip').removeClass("tooltip")
+  $('#submitButtonTooltip > :first-child').css("display", "none")
   $('#publishButton').removeAttr("disabled")
 
   tinymce.activeEditor.save();
