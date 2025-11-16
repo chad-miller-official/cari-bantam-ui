@@ -67,7 +67,14 @@ export class ArticleReader extends LitElement {
     let originallyPublishedAt = null
 
     if (this.originalPublicationUrl) {
-      originallyPublishedAt = html`<p>Originally published at ${this.originalPublicationUrl}</p>`
+      originallyPublishedAt = html`
+        <i>
+          Originally published at
+          <a href="${this.originalPublicationUrl}" target="_blank">
+            ${new URL(this.originalPublicationUrl).hostname}
+          </a>
+        </i>
+      `
     }
 
     return html`

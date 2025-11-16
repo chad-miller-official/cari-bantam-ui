@@ -1,5 +1,12 @@
 /*! For license information please see article-page.js.LICENSE.txt */
-(()=>{"use strict";var t={333:(t,e,i)=>{var s=i(9204),r=i(6684),n=i(754),o=function(t,e,i,s){var r,n=arguments.length,o=n<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)o=Reflect.decorate(t,e,i,s);else for(var l=t.length-1;l>=0;l--)(r=t[l])&&(o=(n<3?r(o):n>3?r(e,i,o):r(e,i))||o);return n>3&&o&&Object.defineProperty(e,i,o),o};let l=class extends r.WF{constructor(){super(...arguments),this.title="(no title)",this.author="(unknown)",this.backgroundColor="#ffffff",this.textColor="#000000",this.roundEdges=!1}render(){const t={color:this.textColor,backgroundImage:`linear-gradient(transparent, transparent 50%, white), linear-gradient(to right, ${this.backgroundColor} 40%, transparent 75%), url(${this.previewImageUrl})`};this.roundEdges&&(t.borderTopLeftRadius="20px",t.borderTopRightRadius="20px");let e=null;return this.originalPublicationUrl&&(e=r.qy`<p>Originally published at ${this.originalPublicationUrl}</p>`),r.qy`
+(()=>{"use strict";var t={333:(t,e,i)=>{var s=i(9204),r=i(6684),n=i(754),o=function(t,e,i,s){var r,n=arguments.length,o=n<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)o=Reflect.decorate(t,e,i,s);else for(var l=t.length-1;l>=0;l--)(r=t[l])&&(o=(n<3?r(o):n>3?r(e,i,o):r(e,i))||o);return n>3&&o&&Object.defineProperty(e,i,o),o};let l=class extends r.WF{constructor(){super(...arguments),this.title="(no title)",this.author="(unknown)",this.backgroundColor="#ffffff",this.textColor="#000000",this.roundEdges=!1}render(){const t={color:this.textColor,backgroundImage:`linear-gradient(transparent, transparent 50%, white), linear-gradient(to right, ${this.backgroundColor} 40%, transparent 75%), url(${this.previewImageUrl})`};this.roundEdges&&(t.borderTopLeftRadius="20px",t.borderTopRightRadius="20px");let e=null;return this.originalPublicationUrl&&(e=r.qy`
+        <i>
+          Originally published at
+          <a href="${this.originalPublicationUrl}" target="_blank">
+            ${new URL(this.originalPublicationUrl).hostname}
+          </a>
+        </i>
+      `),r.qy`
       <article>
         <div class="header" style="${(0,n.W)(t)}">
           <h1>${this.title}</h1>

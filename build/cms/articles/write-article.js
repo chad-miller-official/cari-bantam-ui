@@ -58,7 +58,14 @@
     slot[name=summary] {
       font-size: smaller;
     }
-  `,l([(0,o.MZ)()],a.prototype,"title",void 0),l([(0,o.MZ)()],a.prototype,"author",void 0),l([(0,o.MZ)()],a.prototype,"url",void 0),l([(0,o.MZ)()],a.prototype,"published",void 0),l([(0,o.MZ)()],a.prototype,"previewImageUrl",void 0),l([(0,o.MZ)()],a.prototype,"backgroundColor",void 0),l([(0,o.MZ)()],a.prototype,"textColor",void 0),l([(0,o.MZ)()],a.prototype,"hoverEffect",void 0),a=l([(0,o.EM)("article-preview")],a)},333:(t,e,i)=>{var s=i(9204),o=i(6684),r=i(754),n=function(t,e,i,s){var o,r=arguments.length,n=r<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)n=Reflect.decorate(t,e,i,s);else for(var l=t.length-1;l>=0;l--)(o=t[l])&&(n=(r<3?o(n):r>3?o(e,i,n):o(e,i))||n);return r>3&&n&&Object.defineProperty(e,i,n),n};let l=class extends o.WF{constructor(){super(...arguments),this.title="(no title)",this.author="(unknown)",this.backgroundColor="#ffffff",this.textColor="#000000",this.roundEdges=!1}render(){const t={color:this.textColor,backgroundImage:`linear-gradient(transparent, transparent 50%, white), linear-gradient(to right, ${this.backgroundColor} 40%, transparent 75%), url(${this.previewImageUrl})`};this.roundEdges&&(t.borderTopLeftRadius="20px",t.borderTopRightRadius="20px");let e=null;return this.originalPublicationUrl&&(e=o.qy`<p>Originally published at ${this.originalPublicationUrl}</p>`),o.qy`
+  `,l([(0,o.MZ)()],a.prototype,"title",void 0),l([(0,o.MZ)()],a.prototype,"author",void 0),l([(0,o.MZ)()],a.prototype,"url",void 0),l([(0,o.MZ)()],a.prototype,"published",void 0),l([(0,o.MZ)()],a.prototype,"previewImageUrl",void 0),l([(0,o.MZ)()],a.prototype,"backgroundColor",void 0),l([(0,o.MZ)()],a.prototype,"textColor",void 0),l([(0,o.MZ)()],a.prototype,"hoverEffect",void 0),a=l([(0,o.EM)("article-preview")],a)},333:(t,e,i)=>{var s=i(9204),o=i(6684),r=i(754),n=function(t,e,i,s){var o,r=arguments.length,n=r<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)n=Reflect.decorate(t,e,i,s);else for(var l=t.length-1;l>=0;l--)(o=t[l])&&(n=(r<3?o(n):r>3?o(e,i,n):o(e,i))||n);return r>3&&n&&Object.defineProperty(e,i,n),n};let l=class extends o.WF{constructor(){super(...arguments),this.title="(no title)",this.author="(unknown)",this.backgroundColor="#ffffff",this.textColor="#000000",this.roundEdges=!1}render(){const t={color:this.textColor,backgroundImage:`linear-gradient(transparent, transparent 50%, white), linear-gradient(to right, ${this.backgroundColor} 40%, transparent 75%), url(${this.previewImageUrl})`};this.roundEdges&&(t.borderTopLeftRadius="20px",t.borderTopRightRadius="20px");let e=null;return this.originalPublicationUrl&&(e=o.qy`
+        <i>
+          Originally published at
+          <a href="${this.originalPublicationUrl}" target="_blank">
+            ${new URL(this.originalPublicationUrl).hostname}
+          </a>
+        </i>
+      `),o.qy`
       <article>
         <div class="header" style="${(0,r.W)(t)}">
           <h1>${this.title}</h1>
