@@ -34,3 +34,4 @@
       width: fit-content;
     }
   `,r([(0,n.MZ)({type:Number})],l.prototype,"pageCount",void 0),r([(0,n.MZ)({type:Number})],l.prototype,"currentPage",void 0),l=r([(0,n.EM)("cari-paginator")],l)})();
+//# sourceMappingURL=paginator.js.map
