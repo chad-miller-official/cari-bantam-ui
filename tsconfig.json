@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "build/resources/main/static/js",
     "module": "esnext",
     "moduleResolution": "node",
     "target": "es6",

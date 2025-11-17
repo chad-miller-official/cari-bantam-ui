@@ -83,6 +83,7 @@ function validateAndBuildQueryParams() {
 
     const errorMessageElem = $(`#${eraField}EraValidationMessage`)
     errorMessageElem.text('')
+    errorMessageElem.css('display', 'none')
 
     const eraBound = parseInt(eraFilters.children(`#${eraField}EraBound`).first().val().toString()) || 0 as EraBound
     const eraSpecifier0 = parseInt(eraFilters.children(`#${eraField}EraSpecifier0`).first().val().toString()) || 0
@@ -158,7 +159,7 @@ function updateFilters(event: JQuery.Event) {
     if (ex instanceof FormValidationError) {
       const errorMessageElem = ex.getTarget()
       errorMessageElem.textContent = ex.message
-      errorMessageElem.style['visibility'] = 'visible'
+      errorMessageElem.style['display'] = 'initial'
     } else {
       alert(ex.message)
       throw ex

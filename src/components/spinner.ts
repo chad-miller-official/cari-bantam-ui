@@ -1,5 +1,5 @@
 import {css, html, LitElement} from 'lit'
-import {customElement} from 'lit/decorators.js'
+import {customElement, query} from 'lit/decorators.js'
 
 @customElement('cari-spinner')
 export default class CariSpinner extends LitElement {
@@ -27,5 +27,43 @@ export default class CariSpinner extends LitElement {
   render() {
     return html`
       <div class="loader"></div>`
+  }
+}
+
+@customElement('fullscreen-spinner')
+export class FullscreenSpinner extends LitElement {
+  static styles = css`
+    dialog {
+      align-items: center;
+      background-color: transparent;
+      height: 100%;
+      justify-content: center;
+      width: auto;
+    }
+
+    dialog[open] {
+      display: flex;
+    }
+
+    dialog::backdrop {
+      background-color: rgba(0, 0, 0, 0.2);
+    }`
+
+  @query('#modal')
+  modal: HTMLDialogElement
+
+  showModal() {
+    this.modal.showModal()
+  }
+
+  close() {
+    this.modal.close()
+  }
+
+  render() {
+    return html`
+      <dialog id="modal">
+        ${new CariSpinner()}
+      </dialog>`
   }
 }
