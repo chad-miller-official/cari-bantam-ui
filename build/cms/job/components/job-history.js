@@ -52,4 +52,3 @@
       padding-inline-start: 0;
     }
   `,i([(0,r.KN)({slot:"previousJobs"})],l.prototype,"previousJobs",void 0),l=i([(0,r.EM)("job-history")],l)})();
-//# sourceMappingURL=job-history.js.map
