@@ -1,2 +1,2 @@
-window.addEventListener("load",(()=>{const e=document.getElementById("navbar"),n=e.style;document.getElementById("navbarOpener").addEventListener("click",(()=>{n.display="block"})),document.getElementById("navbarCloser").addEventListener("click",(()=>{n.display="none"})),window.addEventListener("click",(d=>{"block"===n.display&&d.target==e&&(n.display="none")}))}));
+$(()=>{const s=$("#navbar");$("#navbarOpener").on("click",()=>s.css("display","block")),$("#navbarCloser").on("click",()=>s.css("display","none")),$(window).on("click",c=>{"block"===s.css("display")&&c.target==s.get(0)&&s.css("display","none")})});
 //# sourceMappingURL=index.js.map

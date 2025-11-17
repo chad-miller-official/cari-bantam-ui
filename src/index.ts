@@ -1,18 +1,13 @@
-window.addEventListener('load', () => {
-  const navbar = document.getElementById('navbar')
-  const navbarStyle = navbar.style
+$(() => {
+  const navbar = $('#navbar')
 
-  document.getElementById('navbarOpener').addEventListener('click', () => {
-    navbarStyle.display = 'block'
-  })
+  $('#navbarOpener').on('click', () => navbar.css('display', 'block'))
+  $('#navbarCloser').on('click', () => navbar.css('display', 'none'))
 
-  document.getElementById('navbarCloser').addEventListener('click', () => {
-    navbarStyle.display = 'none'
-  })
-
-  window.addEventListener('click', event => {
-    if (navbarStyle.display === 'block' && event.target == navbar) {
-      navbarStyle.display = 'none'
+  $(window).on('click', (event) => {
+    // @ts-ignore
+    if (navbar.css('display') === 'block' && event.target == navbar.get(0)) {
+      navbar.css('display', 'none')
     }
   })
 })
