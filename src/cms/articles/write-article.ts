@@ -1,9 +1,6 @@
 import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
-import {
-  setup,
-  ArticleSetupObject, SubmitMode,
-} from "./form-common";
+import {allocatePk, ArticleSetupObject, setup, triggerArticleFormSubmit,} from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
 
 // Avoid having to import tinymce within this file
@@ -12,12 +9,14 @@ declare const tinymce: {
     getContent: () => string;
     save: () => void;
     on: (arg0: string, arg1: () => void) => void;
+    uploadImages: () => Promise<any>;
   };
 }
 
 class WriteArticleSetupObject extends ArticleSetupObject {
   constructor() {
     super('#previewButton')
+    this.type = 'SELF_HOSTED'
   }
 
   protected shouldEnableSubmitButton(): boolean {
@@ -64,12 +63,6 @@ class WriteArticleSetupObject extends ArticleSetupObject {
     super.onFormInvalid()
     this.resetPublishButton()
   }
-
-  public triggerChangeDetected() {
-    super.triggerChangeDetected()
-    $('#saveButton').removeAttr('disabled')
-    $('#saveMessage').css('display', '')
-  }
 }
 
 function handlePreviewButtonClick(event) {
@@ -104,29 +97,26 @@ function handlePreviewButtonClick(event) {
 }
 
 const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject) => {
+  const pkArticle = $('#article').val().toString()
+
   const xhr = new XMLHttpRequest()
   xhr.withCredentials = true
-  xhr.open('POST', '/api/cms/articles/upload-image')
+  xhr.open('POST', `/api/cms/articles/${pkArticle}/upload-image`)
 
   xhr.upload.onprogress = (e) => {
     progress(e.loaded / e.total * 100)
   }
 
   xhr.onload = () => {
-    if (xhr.status === 403) {
-      reject({message: `HTTP Error: ${xhr.status}`, remove: true})
-      return
-    }
-
     if (xhr.status < 200 || xhr.status >= 300) {
-      reject(`HTTP Error: ${xhr.status}`)
+      reject({message: `HTTP Error: ${xhr.status}`, remove: true})
       return
     }
 
     const json = JSON.parse(xhr.responseText)
 
     if (!json || typeof json.location != 'string') {
-      reject(`Invalid JSON: ${xhr.responseText}`)
+      reject({message: `Invalid JSON: ${xhr.responseText}`})
       return
     }
 
@@ -155,15 +145,18 @@ $(() => {
     plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
     toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
     image_uploadtab: true,
-    automatic_uploads: true,
     images_upload_handler: imageUploadHandler,
+    automatic_uploads: false,
     setup: (editor) => {
       editor.on('input', () => body.parent().children('.validation-message').css('display', ''))
-      editor.on('focusout', () => setupObject.toggleSubmitButton())
+
+      editor.on('change', () => {
+        setupObject.toggleSubmitButton()
+        setupObject.triggerChangeDetected()
+      })
     },
   })
 
-  tinymce.activeEditor.on('input', () => setupObject.triggerChangeDetected())
   $('#originalPublicationUrl').on('input', () => setupObject.triggerChangeDetected())
 
   setup(setupObject)
@@ -173,17 +166,12 @@ $(() => {
 
   const saveButton = $('#saveButton')
 
-  saveButton.on('click', function () {
-    tinymce.activeEditor.save()
+  saveButton.on('click', async () => {
+    await allocatePk(setupObject)
 
-    $('#articleForm').trigger('submit', {
-      mode: SubmitMode.SAVE,
-      onSuccess: () => {
-        saveButton.attr('disabled', 'disabled')
-        setupObject.resetChangeDetected();
-        ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
-        $('#saveMessage').css('display', 'initial')
-      },
+    tinymce.activeEditor.uploadImages().then(() => {
+      tinymce.activeEditor.save()
+      triggerArticleFormSubmit(setupObject)
     })
   })
 })

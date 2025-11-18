@@ -2,6 +2,10 @@ import {ArticlePreview} from "../../articles/components/article-preview";
 import {dateToString, invertColor} from "../../util";
 import {FullscreenSpinner} from "../../components/spinner";
 import {RedirectResponse, ValidationException} from "../types";
+import axios, {AxiosResponse} from "axios";
+import {Csrf} from "../../types";
+
+declare const _csrf: Csrf
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
@@ -17,6 +21,7 @@ let changeDetected = false
 
 export class ArticleSetupObject {
   submitButton: JQuery<HTMLButtonElement>
+  type: string
 
   constructor(submitButtonSelector: string) {
     this.submitButton = $(submitButtonSelector)
@@ -95,10 +100,16 @@ export class ArticleSetupObject {
 
   public triggerChangeDetected() {
     changeDetected = true
+
+    $('#saveButton').removeAttr('disabled')
+    $('#saveMessage').css('display', '')
   }
 
   public resetChangeDetected() {
     changeDetected = false
+
+    $('#saveButton').attr('disabled', 'disabled')
+    $('#saveMessage').css('display', 'initial')
   }
 }
 
@@ -295,30 +306,30 @@ function handlePublisherOverrideChange(event) {
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
 
-  const submitMode = (data || {mode: SubmitMode.PUBLISH}).mode
+  const submitMode = data.mode
 
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
   $('#realPublished').val($('#published').val())
 
   const defaultOnSuccess = (res: RedirectResponse) => window.location.href = res.redirectTo
-  const onSuccess = (data || {onSuccess: defaultOnSuccess}).onSuccess
+  const onSuccess = data.onSuccess || defaultOnSuccess
 
   const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
-
-  const formData = new FormData(form.get(0))
-  formData.set('submitMode', submitMode.toString())
 
   if (valid) {
     const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
     spinner.showModal()
+
+    const formData = new FormData(form.get(0))
+    formData.set('submitMode', submitMode.toString())
 
     $.ajax({
       url: form.attr('action'),
       data: formData,
       processData: false,
       contentType: false,
-      method: submitMode === SubmitMode.SAVE ? 'put' : 'post',
+      method: 'put',
       success: onSuccess,
       error: (jqXHR) => {
         let elemId = ''
@@ -359,6 +370,33 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
   } else {
     setupObject.onFormInvalid()
   }
+}
+
+export async function allocatePk(setupObject: ArticleSetupObject) {
+  const pkArticle = $('#article')
+
+  if (!pkArticle.val()) {
+    const axiosData = {[_csrf.parameterName]: _csrf.token}
+
+    const axiosConfig = {
+      withCredentials: true,
+      xsrfHeaderName: _csrf.headerName,
+      headers: {[_csrf.headerName]: _csrf.token},
+    }
+
+    const allocateIdResponse: AxiosResponse<number> = await axios.post<number>(`/api/cms/articles/allocate-id?type=${setupObject.type}`, axiosData, axiosConfig)
+    pkArticle.val(allocateIdResponse.data)
+  }
+}
+
+export function triggerArticleFormSubmit(setupObject: ArticleSetupObject) {
+  $('#articleForm').trigger('submit', {
+    mode: SubmitMode.SAVE,
+    onSuccess: () => {
+      setupObject.resetChangeDetected();
+      ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
+    },
+  })
 }
 
 export function setup(setupObject: ArticleSetupObject) {

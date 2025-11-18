@@ -1,10 +1,11 @@
 import {ArticlePreview} from "../../articles/components/article-preview";
 import {FullscreenSpinner} from "../../components/spinner";
-import {setup, ArticleSetupObject} from "./form-common";
+import {setup, ArticleSetupObject, triggerArticleFormSubmit, allocatePk} from "./form-common";
 
 class LinkArticleSetupObject extends ArticleSetupObject {
   constructor() {
     super('#publishButton')
+    this.type = 'OFF_SITE'
   }
 
   protected shouldEnableSubmitButton(): boolean {
@@ -49,6 +50,11 @@ $(() => {
     validationMessageElem.text('')
 
     setupObject.toggleSubmitButton()
+  })
+
+  $('#saveButton').on('click', async () => {
+    await allocatePk(setupObject)
+    triggerArticleFormSubmit(setupObject)
   })
 })
 
