@@ -45,4 +45,3 @@
       padding: 0.3em;
     }
   `,o([(0,n.P)("#cariModal")],r.prototype,"cariModal",void 0),o([(0,n.wk)()],r.prototype,"open",void 0),r=o([(0,n.EM)("cari-modal")],r)})();
-//# sourceMappingURL=modal.js.map

@@ -1,2 +1,1 @@
 $(()=>{const s=$("#navbar");$("#navbarOpener").on("click",()=>s.css("display","block")),$("#navbarCloser").on("click",()=>s.css("display","none")),$(window).on("click",c=>{"block"===s.css("display")&&c.target==s.get(0)&&s.css("display","none")})});
-//# sourceMappingURL=index.js.map

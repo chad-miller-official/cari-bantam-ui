@@ -34,6 +34,9 @@ class WriteArticleSetupObject extends ArticleSetupObject {
   }
 
   public triggerArticleFormSubmit() {
+    const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
+    spinner.showModal()
+
     tinymce.activeEditor.uploadImages().then((value) => {
       if (value.every(img => img.status)) {
         tinymce.activeEditor.save()
@@ -123,6 +126,8 @@ const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject)
       if (xhr.status === 413) {
         message = `File "${blobInfo.filename()} is too large. Max size: ${FILE_MAX_SIZE}`
       }
+
+      ($('fullscreen-spinner').get(0) as HTMLDialogElement).close()
 
       reject({message})
       return
