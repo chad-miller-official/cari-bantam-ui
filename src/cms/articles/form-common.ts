@@ -12,6 +12,8 @@ declare const originalAuthorName: string
 declare const originalPublished: string
 declare const originalPublishedString: string
 
+export const FILE_MAX_SIZE = '10MB'
+
 export enum SubmitMode {
   SAVE = 'SAVE',
   PUBLISH = 'PUBLISH',
@@ -367,8 +369,8 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
         let errorMessage: string
 
         if (jqXHR.status == 413) {
-          elemId = 'body'
-          errorMessage = 'Post too large. Please remove and re-insert all embedded media via the Insert drop-down menu in the toolbar.'
+          elemId = 'previewImage'
+          errorMessage = `Preview image too large. Maximum size: ${FILE_MAX_SIZE}`
         } else {
           const error = jqXHR.responseJSON as ValidationException
           elemId = error.fieldName

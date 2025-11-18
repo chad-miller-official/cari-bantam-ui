@@ -1,6 +1,6 @@
 import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
-import {ArticleSetupObject, ArticleType, setup,} from "./form-common";
+import {ArticleSetupObject, ArticleType, FILE_MAX_SIZE, setup,} from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
 
 // Avoid having to import tinymce within this file
@@ -34,9 +34,11 @@ class WriteArticleSetupObject extends ArticleSetupObject {
   }
 
   public triggerArticleFormSubmit() {
-    tinymce.activeEditor.uploadImages().then(() => {
-      tinymce.activeEditor.save()
-      super.triggerArticleFormSubmit()
+    tinymce.activeEditor.uploadImages().then((value) => {
+      if (value.every(img => img.status)) {
+        tinymce.activeEditor.save()
+        super.triggerArticleFormSubmit()
+      }
     })
   }
 
@@ -116,7 +118,13 @@ const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject)
 
   xhr.onload = () => {
     if (xhr.status < 200 || xhr.status >= 300) {
-      reject({message: `HTTP Error: ${xhr.status}`, remove: true})
+      let message = `HTTP Error: ${xhr.status}`
+
+      if (xhr.status === 413) {
+        message = `File "${blobInfo.filename()} is too large. Max size: ${FILE_MAX_SIZE}`
+      }
+
+      reject({message})
       return
     }
 
@@ -153,6 +161,7 @@ $(() => {
     toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
     image_uploadtab: true,
     images_upload_handler: imageUploadHandler,
+    images_reuse_filename: true,
     automatic_uploads: false,
     setup: (editor) => {
       editor.on('input', () => body.parent().children('.validation-message').css('display', ''))
