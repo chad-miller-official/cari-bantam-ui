@@ -17,11 +17,16 @@ export enum SubmitMode {
   PUBLISH = 'PUBLISH',
 }
 
+export enum ArticleType {
+  SELF_HOSTED = 'SELF_HOSTED',
+  OFF_SITE = 'OFF_SITE'
+}
+
 let changeDetected = false
 
 export class ArticleSetupObject {
   submitButton: JQuery<HTMLButtonElement>
-  type: string
+  type: ArticleType
 
   constructor(submitButtonSelector: string) {
     this.submitButton = $(submitButtonSelector)
@@ -48,6 +53,37 @@ export class ArticleSetupObject {
     } else {
       this.disableSubmitButton()
     }
+  }
+
+  public async allocatePk() {
+    const pkArticle = $('#article')
+
+    if (!pkArticle.val()) {
+      const axiosData = {[_csrf.parameterName]: _csrf.token}
+
+      const axiosConfig = {
+        withCredentials: true,
+        xsrfHeaderName: _csrf.headerName,
+        headers: {[_csrf.headerName]: _csrf.token},
+      }
+
+      const allocateIdResponse: AxiosResponse<number> = await axios.post<number>(`/api/cms/articles/allocate-id?type=${this.type}`, axiosData, axiosConfig)
+      pkArticle.val(allocateIdResponse.data)
+    }
+  }
+
+  public triggerArticleFormSubmit() {
+    $('#articleForm').trigger('submit', {
+      mode: SubmitMode.SAVE,
+      onSuccess: () => {
+        changeDetected = false
+
+        $('#saveButton').attr('disabled', 'disabled')
+        $('#saveMessage').css('display', 'initial');
+
+        ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
+      },
+    })
   }
 
   public validate(): boolean {
@@ -103,13 +139,6 @@ export class ArticleSetupObject {
 
     $('#saveButton').removeAttr('disabled')
     $('#saveMessage').css('display', '')
-  }
-
-  public resetChangeDetected() {
-    changeDetected = false
-
-    $('#saveButton').attr('disabled', 'disabled')
-    $('#saveMessage').css('display', 'initial')
   }
 }
 
@@ -306,14 +335,14 @@ function handlePublisherOverrideChange(event) {
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
 
-  const submitMode = data.mode
+  const submitMode = data?.mode ?? SubmitMode.PUBLISH
 
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
   $('#realPublished').val($('#published').val())
 
   const defaultOnSuccess = (res: RedirectResponse) => window.location.href = res.redirectTo
-  const onSuccess = data.onSuccess || defaultOnSuccess
+  const onSuccess = data?.onSuccess ?? defaultOnSuccess
 
   const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
 
@@ -372,33 +401,6 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
   }
 }
 
-export async function allocatePk(setupObject: ArticleSetupObject) {
-  const pkArticle = $('#article')
-
-  if (!pkArticle.val()) {
-    const axiosData = {[_csrf.parameterName]: _csrf.token}
-
-    const axiosConfig = {
-      withCredentials: true,
-      xsrfHeaderName: _csrf.headerName,
-      headers: {[_csrf.headerName]: _csrf.token},
-    }
-
-    const allocateIdResponse: AxiosResponse<number> = await axios.post<number>(`/api/cms/articles/allocate-id?type=${setupObject.type}`, axiosData, axiosConfig)
-    pkArticle.val(allocateIdResponse.data)
-  }
-}
-
-export function triggerArticleFormSubmit(setupObject: ArticleSetupObject) {
-  $('#articleForm').trigger('submit', {
-    mode: SubmitMode.SAVE,
-    onSuccess: () => {
-      setupObject.resetChangeDetected();
-      ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
-    },
-  })
-}
-
 export function setup(setupObject: ArticleSetupObject) {
   recalculatePreviewImageMinDimensions()
 
@@ -444,6 +446,11 @@ export function setup(setupObject: ArticleSetupObject) {
 
   $('#articleForm').on('submit', function (event, data) {
     handleSubmit(event, data, $(this) as JQuery<HTMLFormElement>, setupObject)
+  })
+
+  $('#saveButton').on('click', async () => {
+    await setupObject.allocatePk()
+    setupObject.triggerArticleFormSubmit()
   })
 
   $('#cancelButton').on('click', () => setupObject.cancel())

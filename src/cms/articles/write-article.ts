@@ -1,6 +1,6 @@
 import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
-import {allocatePk, ArticleSetupObject, setup, triggerArticleFormSubmit,} from "./form-common";
+import {ArticleSetupObject, ArticleType, setup,} from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
 
 // Avoid having to import tinymce within this file
@@ -16,7 +16,7 @@ declare const tinymce: {
 class WriteArticleSetupObject extends ArticleSetupObject {
   constructor() {
     super('#previewButton')
-    this.type = 'SELF_HOSTED'
+    this.type = ArticleType.SELF_HOSTED
   }
 
   protected shouldEnableSubmitButton(): boolean {
@@ -31,6 +31,13 @@ class WriteArticleSetupObject extends ArticleSetupObject {
   public toggleSubmitButton() {
     super.toggleSubmitButton()
     this.resetPublishButton()
+  }
+
+  public triggerArticleFormSubmit() {
+    tinymce.activeEditor.uploadImages().then(() => {
+      tinymce.activeEditor.save()
+      super.triggerArticleFormSubmit()
+    })
   }
 
   public validate(): boolean {
@@ -163,17 +170,6 @@ $(() => {
 
   $('#modal').on('close', () => $('body').css('overflow', 'initial'))
   $('#previewButton').on('click', handlePreviewButtonClick)
-
-  const saveButton = $('#saveButton')
-
-  saveButton.on('click', async () => {
-    await allocatePk(setupObject)
-
-    tinymce.activeEditor.uploadImages().then(() => {
-      tinymce.activeEditor.save()
-      triggerArticleFormSubmit(setupObject)
-    })
-  })
 })
 
 export {ArticlePreview, ArticleReader, FullscreenSpinner}
