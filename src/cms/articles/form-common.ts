@@ -74,7 +74,7 @@ export class ArticleSetupObject {
     }
   }
 
-  public triggerArticleFormSubmit() {
+  public saveArticle() {
     $('#articleForm').trigger('submit', {
       mode: SubmitMode.SAVE,
       onSuccess: () => {
@@ -85,6 +85,13 @@ export class ArticleSetupObject {
 
         ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
       },
+    })
+  }
+
+  public publishArticle() {
+    $('#articleForm').trigger('submit', {
+      mode: SubmitMode.PUBLISH,
+      onSuccess: (res: RedirectResponse) => window.location.href = res.redirectTo
     })
   }
 
@@ -337,20 +344,14 @@ function handlePublisherOverrideChange(event) {
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
 
-  const submitMode = data?.mode ?? SubmitMode.PUBLISH
-
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
   $('#realPublished').val($('#published').val())
 
-  const defaultOnSuccess = (res: RedirectResponse) => window.location.href = res.redirectTo
-  const onSuccess = data?.onSuccess ?? defaultOnSuccess
+  const submitMode = data.mode
 
-  const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
-
-  if (valid) {
-    const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
-    spinner.showModal()
+  if (submitMode === SubmitMode.SAVE || setupObject.validate()) {
+    showSpinner()
 
     const formData = new FormData(form.get(0))
     formData.set('submitMode', submitMode.toString())
@@ -361,7 +362,7 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
       processData: false,
       contentType: false,
       method: 'put',
-      success: onSuccess,
+      success: data.onSuccess,
       error: (jqXHR) => {
         let elemId: string
         let validationMessageCssProp = 'display'
@@ -394,13 +395,21 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
         $(`#${elemId}`).parent().children('.validation-message')
         .css(validationMessageCssProp, validationMessageCssValue).text(errorMessage)
 
-        spinner.close()
+        closeSpinner()
         setupObject.onFormInvalid()
       },
     })
   } else {
     setupObject.onFormInvalid()
   }
+}
+
+export function showSpinner() {
+  ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
+}
+
+export function closeSpinner() {
+  ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
 }
 
 export function setup(setupObject: ArticleSetupObject) {
@@ -452,7 +461,12 @@ export function setup(setupObject: ArticleSetupObject) {
 
   $('#saveButton').on('click', async () => {
     await setupObject.allocatePk()
-    setupObject.triggerArticleFormSubmit()
+    setupObject.saveArticle()
+  })
+
+  $('#publishButton').on('click', async () => {
+    await setupObject.allocatePk()
+    setupObject.publishArticle()
   })
 
   $('#cancelButton').on('click', () => setupObject.cancel())

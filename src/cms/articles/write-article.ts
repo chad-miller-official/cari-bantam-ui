@@ -1,6 +1,13 @@
 import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
-import {ArticleSetupObject, ArticleType, FILE_MAX_SIZE, setup,} from "./form-common";
+import {
+  ArticleSetupObject,
+  ArticleType,
+  closeSpinner,
+  FILE_MAX_SIZE,
+  setup,
+  showSpinner,
+} from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
 
 // Avoid having to import tinymce within this file
@@ -33,16 +40,23 @@ class WriteArticleSetupObject extends ArticleSetupObject {
     this.resetPublishButton()
   }
 
-  public triggerArticleFormSubmit() {
-    const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
-    spinner.showModal()
+  private submitArticle(onImagesUploaded: () => void) {
+    showSpinner()
 
     tinymce.activeEditor.uploadImages().then((value) => {
       if (value.every(img => img.status)) {
         tinymce.activeEditor.save()
-        super.triggerArticleFormSubmit()
+        onImagesUploaded()
       }
     })
+  }
+
+  public saveArticle() {
+    this.submitArticle(() => super.saveArticle())
+  }
+
+  public publishArticle() {
+    this.submitArticle(() => super.publishArticle())
   }
 
   public validate(): boolean {
@@ -127,9 +141,9 @@ const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject)
         message = `File "${blobInfo.filename()} is too large. Max size: ${FILE_MAX_SIZE}`
       }
 
-      ($('fullscreen-spinner').get(0) as HTMLDialogElement).close()
-
+      closeSpinner()
       reject({message})
+
       return
     }
 
@@ -169,9 +183,8 @@ $(() => {
     images_reuse_filename: true,
     automatic_uploads: false,
     setup: (editor) => {
-      editor.on('input', () => body.parent().children('.validation-message').css('display', ''))
-
       editor.on('change', () => {
+        body.parent().children('.validation-message').css('display', '')
         setupObject.toggleSubmitButton()
         setupObject.triggerChangeDetected()
       })
