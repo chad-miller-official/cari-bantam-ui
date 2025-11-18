@@ -1,4 +1,4 @@
-import {customElement, property, queryAssignedElements, state} from "lit/decorators.js";
+import {customElement, queryAssignedElements, state} from "lit/decorators.js";
 import {css, html, LitElement} from "lit";
 import {LogAppend} from "../events";
 

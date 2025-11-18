@@ -361,10 +361,10 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
       method: 'put',
       success: onSuccess,
       error: (jqXHR) => {
-        let elemId = ''
+        let elemId: string
         let validationMessageCssProp = 'display'
         let validationMessageCssValue = 'initial'
-        let errorMessage = ''
+        let errorMessage: string
 
         if (jqXHR.status == 413) {
           elemId = 'body'
