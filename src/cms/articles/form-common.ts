@@ -4,6 +4,7 @@ import {FullscreenSpinner} from "../../components/spinner";
 import {RedirectResponse, ValidationException} from "../types";
 import axios, {AxiosResponse} from "axios";
 import {Csrf} from "../../types";
+import jqXHR = JQuery.jqXHR;
 
 declare const _csrf: Csrf
 
@@ -91,7 +92,7 @@ export class ArticleSetupObject {
   public publishArticle() {
     $('#articleForm').trigger('submit', {
       mode: SubmitMode.PUBLISH,
-      onSuccess: (res: RedirectResponse) => window.location.href = res.redirectTo
+      onSuccess: (res: RedirectResponse) => window.location.href = res.location
     })
   }
 
@@ -341,6 +342,46 @@ function handlePublisherOverrideChange(event) {
   setupObject.toggleSubmitButton()
 }
 
+function handleSubmitError(jqXHR: jqXHR) {
+  if (jqXHR.status === 503) {
+    const error = jqXHR.responseJSON as RedirectResponse
+    alert(error.error)
+  } else {
+    let elemId: string
+    let validationMessageCssProp = 'display'
+    let validationMessageCssValue = 'initial'
+    let errorMessage: string
+
+    if (jqXHR.status == 413) {
+      elemId = 'previewImage'
+      errorMessage = `Preview image too large. Maximum size: ${FILE_MAX_SIZE}`
+    } else {
+      const error = jqXHR.responseJSON as ValidationException
+      elemId = error.fieldName
+      errorMessage = error.message
+
+      switch (elemId) {
+        case 'title':
+          elemId = 'titleEditor'
+          break
+        case 'summary':
+          elemId = 'summaryEditor'
+          validationMessageCssProp = 'visibility'
+          validationMessageCssValue = 'visible'
+          break
+        case 'previewImageFile':
+          elemId = 'previewImage'
+          break
+      }
+    }
+
+    $(`#${elemId}`).parent().children('.validation-message')
+    .css(validationMessageCssProp, validationMessageCssValue).text(errorMessage)
+  }
+
+  closeSpinner()
+}
+
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
 
@@ -364,38 +405,7 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
       method: 'put',
       success: data.onSuccess,
       error: (jqXHR) => {
-        let elemId: string
-        let validationMessageCssProp = 'display'
-        let validationMessageCssValue = 'initial'
-        let errorMessage: string
-
-        if (jqXHR.status == 413) {
-          elemId = 'previewImage'
-          errorMessage = `Preview image too large. Maximum size: ${FILE_MAX_SIZE}`
-        } else {
-          const error = jqXHR.responseJSON as ValidationException
-          elemId = error.fieldName
-          errorMessage = error.message
-
-          switch (elemId) {
-            case 'title':
-              elemId = 'titleEditor'
-              break
-            case 'summary':
-              elemId = 'summaryEditor'
-              validationMessageCssProp = 'visibility'
-              validationMessageCssValue = 'visible'
-              break
-            case 'previewImageFile':
-              elemId = 'previewImage'
-              break
-          }
-        }
-
-        $(`#${elemId}`).parent().children('.validation-message')
-        .css(validationMessageCssProp, validationMessageCssValue).text(errorMessage)
-
-        closeSpinner()
+        handleSubmitError(jqXHR)
         setupObject.onFormInvalid()
       },
     })

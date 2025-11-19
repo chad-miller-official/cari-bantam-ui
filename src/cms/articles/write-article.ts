@@ -9,6 +9,7 @@ import {
   showSpinner,
 } from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
+import {RedirectResponse} from "../types";
 
 // Avoid having to import tinymce within this file
 declare const tinymce: {
@@ -134,11 +135,21 @@ const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject)
   }
 
   xhr.onload = () => {
+    const response = JSON.parse(xhr.responseText) as RedirectResponse
+
+    if (!response) {
+      closeSpinner()
+      reject({message: `Invalid response: ${xhr.responseText}`})
+      return
+    }
+
     if (xhr.status < 200 || xhr.status >= 300) {
       let message = `HTTP Error: ${xhr.status}`
 
       if (xhr.status === 413) {
         message = `File "${blobInfo.filename()} is too large. Max size: ${FILE_MAX_SIZE}`
+      } else if (xhr.status == 503) {
+        message = response.error
       }
 
       closeSpinner()
@@ -147,17 +158,11 @@ const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject)
       return
     }
 
-    const json = JSON.parse(xhr.responseText)
-
-    if (!json || typeof json.location != 'string') {
-      reject({message: `Invalid JSON: ${xhr.responseText}`})
-      return
-    }
-
-    resolve(json.location);
+    resolve(response.location);
   }
 
   xhr.onerror = () => {
+    closeSpinner()
     reject(`Image upload failed due to an XHR Transport error. Code: ${xhr.status}`)
   }
 

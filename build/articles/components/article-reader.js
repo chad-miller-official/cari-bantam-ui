@@ -40,3 +40,4 @@
       width: 50%;
     }
   `,o([(0,s.MZ)()],l.prototype,"title",void 0),o([(0,s.MZ)()],l.prototype,"author",void 0),o([(0,s.MZ)()],l.prototype,"published",void 0),o([(0,s.MZ)()],l.prototype,"originalPublicationUrl",void 0),o([(0,s.MZ)()],l.prototype,"previewImageUrl",void 0),o([(0,s.MZ)()],l.prototype,"backgroundColor",void 0),o([(0,s.MZ)()],l.prototype,"textColor",void 0),o([(0,s.MZ)({type:Boolean,attribute:"data-round-edges"})],l.prototype,"roundEdges",void 0),l=o([(0,s.EM)("article-reader")],l)})();
+//# sourceMappingURL=article-reader.js.map
