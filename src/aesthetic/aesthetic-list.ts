@@ -172,7 +172,7 @@ function updateFilters(event: JQuery.Event) {
   window.location.assign(`${window.location.pathname}?${query}`)
 }
 
-function resetFilters(event: JQuery.Event) {
+function resetFilters() {
   let redirectTo = window.location.pathname
 
   if (jobExecution) {

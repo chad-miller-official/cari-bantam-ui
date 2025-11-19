@@ -1,10 +1,15 @@
 import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
 import {
+  ArticleSetupObject,
+  ArticleType,
+  closeSpinner,
+  FILE_MAX_SIZE,
   setup,
-  ArticleSetupObject, SubmitMode,
+  showSpinner,
 } from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
+import {RedirectResponse} from "../types";
 
 // Avoid having to import tinymce within this file
 declare const tinymce: {
@@ -12,12 +17,14 @@ declare const tinymce: {
     getContent: () => string;
     save: () => void;
     on: (arg0: string, arg1: () => void) => void;
+    uploadImages: () => Promise<any>;
   };
 }
 
 class WriteArticleSetupObject extends ArticleSetupObject {
   constructor() {
     super('#previewButton')
+    this.type = ArticleType.SELF_HOSTED
   }
 
   protected shouldEnableSubmitButton(): boolean {
@@ -32,6 +39,25 @@ class WriteArticleSetupObject extends ArticleSetupObject {
   public toggleSubmitButton() {
     super.toggleSubmitButton()
     this.resetPublishButton()
+  }
+
+  private submitArticle(onImagesUploaded: () => void) {
+    showSpinner()
+
+    tinymce.activeEditor.uploadImages().then((value) => {
+      if (value.every(img => img.status)) {
+        tinymce.activeEditor.save()
+        onImagesUploaded()
+      }
+    })
+  }
+
+  public saveArticle() {
+    this.submitArticle(() => super.saveArticle())
+  }
+
+  public publishArticle() {
+    this.submitArticle(() => super.publishArticle())
   }
 
   public validate(): boolean {
@@ -63,12 +89,6 @@ class WriteArticleSetupObject extends ArticleSetupObject {
   public onFormInvalid() {
     super.onFormInvalid()
     this.resetPublishButton()
-  }
-
-  public triggerChangeDetected() {
-    super.triggerChangeDetected()
-    $('#saveButton').removeAttr('disabled')
-    $('#saveMessage').css('display', '')
   }
 }
 
@@ -103,6 +123,56 @@ function handlePreviewButtonClick(event) {
   articleReader.innerHTML = tinymce.activeEditor.getContent()
 }
 
+const imageUploadHandler = (blobInfo, progress) => new Promise((resolve, reject) => {
+  const pkArticle = $('#article').val().toString()
+
+  const xhr = new XMLHttpRequest()
+  xhr.withCredentials = true
+  xhr.open('POST', `/api/cms/articles/${pkArticle}/upload-image`)
+
+  xhr.upload.onprogress = (e) => {
+    progress(e.loaded / e.total * 100)
+  }
+
+  xhr.onload = () => {
+    const response = JSON.parse(xhr.responseText) as RedirectResponse
+
+    if (!response) {
+      closeSpinner()
+      reject({message: `Invalid response: ${xhr.responseText}`})
+      return
+    }
+
+    if (xhr.status < 200 || xhr.status >= 300) {
+      let message = `HTTP Error: ${xhr.status}`
+
+      if (xhr.status === 413) {
+        message = `File "${blobInfo.filename()} is too large. Max size: ${FILE_MAX_SIZE}`
+      } else if (xhr.status == 503) {
+        message = response.error
+      }
+
+      closeSpinner()
+      reject({message})
+
+      return
+    }
+
+    resolve(response.location);
+  }
+
+  xhr.onerror = () => {
+    closeSpinner()
+    reject(`Image upload failed due to an XHR Transport error. Code: ${xhr.status}`)
+  }
+
+  const formData = new FormData()
+  formData.append('file', blobInfo.blob(), blobInfo.filename())
+  formData.append('_csrf', $('input[name=_csrf]').val().toString())
+
+  xhr.send(formData)
+})
+
 $(() => {
   const setupObject = new WriteArticleSetupObject()
   const body = $('#body')
@@ -113,35 +183,25 @@ $(() => {
     promotion: false,
     plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
     toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+    image_uploadtab: true,
+    images_upload_handler: imageUploadHandler,
+    images_reuse_filename: true,
+    automatic_uploads: false,
     setup: (editor) => {
-      editor.on('input', () => body.parent().children('.validation-message').css('display', ''))
-      editor.on('focusout', () => setupObject.toggleSubmitButton())
+      editor.on('change', () => {
+        body.parent().children('.validation-message').css('display', '')
+        setupObject.toggleSubmitButton()
+        setupObject.triggerChangeDetected()
+      })
     },
   })
 
-  tinymce.activeEditor.on('input', () => setupObject.triggerChangeDetected())
   $('#originalPublicationUrl').on('input', () => setupObject.triggerChangeDetected())
 
   setup(setupObject)
 
   $('#modal').on('close', () => $('body').css('overflow', 'initial'))
   $('#previewButton').on('click', handlePreviewButtonClick)
-
-  const saveButton = $('#saveButton')
-
-  saveButton.on('click', function () {
-    tinymce.activeEditor.save()
-
-    $('#articleForm').trigger('submit', {
-      mode: SubmitMode.SAVE,
-      onSuccess: () => {
-        saveButton.attr('disabled', 'disabled')
-        setupObject.resetChangeDetected();
-        ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
-        $('#saveMessage').css('display', 'initial')
-      },
-    })
-  })
 })
 
 export {ArticlePreview, ArticleReader, FullscreenSpinner}
