@@ -1,0 +1,73 @@
+import {AestheticBlock} from "./components/aesthetic-block";
+import {ArenaApiResponse, BlockClass, GalleryContent} from "./types";
+import InfiniteScroll from "infinite-scroll";
+
+declare const mediaSourceUrl: string
+
+const MAX_PAGE_SIZE = 20
+
+let totalPages = 1
+
+function buildBlock(block: GalleryContent): JQuery<HTMLElement> {
+  const blockElement = $('<div>').addClass('aesthetic-gallery-block')
+
+  if (
+      block.class === BlockClass.Link ||
+      block.class === BlockClass.Image ||
+      block.class === BlockClass.Media ||
+      (block.class === BlockClass.Attachment && block.image)
+  ) {
+    const thumbnail = $('<img>')
+    .attr('src', block.image.square.url)
+    .attr('alt', block.title)
+
+    return blockElement.append(thumbnail)
+  } else {
+    const preview = block.class === BlockClass.Text
+        ? $('<p>').text(block.content.length > 100 ? block.content.substring(0, 97) + '...' : block.content)
+        : $('<h3>').text('No Preview')
+
+    return blockElement.append(preview)
+  }
+}
+
+$(() => {
+  const aestheticGallery = $('#aestheticGallery')
+
+  if (aestheticGallery.length) {
+    const data = {
+      page: 1,
+      per: MAX_PAGE_SIZE,
+    }
+
+    $.get(mediaSourceUrl, data, (res: ArenaApiResponse) => {
+      totalPages = Math.ceil(res.length / MAX_PAGE_SIZE)
+      aestheticGallery.append(...res.contents.map(buildBlock))
+    })
+
+    const infScroll = new InfiniteScroll(aestheticGallery.get(0), {
+      path: () => {
+        const infScroll = InfiniteScroll.data('#aestheticGallery')
+
+        if (infScroll.pageIndex - 1 < totalPages) {
+          return `${mediaSourceUrl}?page=${infScroll.pageIndex + 1}&per=${MAX_PAGE_SIZE}`
+        }
+      },
+      responseBody: 'json',
+      history: false,
+      scrollThreshold: false,
+    })
+
+    infScroll.on('load', (res: ArenaApiResponse) => aestheticGallery.append(...res.contents.map(buildBlock)))
+
+    aestheticGallery.on('scroll', function (event) {
+      const trueWidth = this.scrollWidth - $(this).parent().width()
+
+      if (event.target.scrollLeft >= 0.9 * trueWidth) {
+        infScroll.loadNextPage()
+      }
+    })
+  }
+})
+
+export {AestheticBlock}
