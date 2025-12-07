@@ -7,9 +7,11 @@ declare const mediaSourceUrl: string
 const MAX_PAGE_SIZE = 20
 
 let totalPages = 1
+let loadedLast = true
 
 function buildBlock(block: GalleryContent): JQuery<HTMLElement> {
   const blockElement = $('<div>').addClass('aesthetic-gallery-block')
+  let content: JQuery<HTMLElement>
 
   if (
       block.class === BlockClass.Link ||
@@ -17,18 +19,16 @@ function buildBlock(block: GalleryContent): JQuery<HTMLElement> {
       block.class === BlockClass.Media ||
       (block.class === BlockClass.Attachment && block.image)
   ) {
-    const thumbnail = $('<img>')
+    content = $('<img>')
     .attr('src', block.image.square.url)
     .attr('alt', block.title)
-
-    return blockElement.append(thumbnail)
   } else {
-    const preview = block.class === BlockClass.Text
+    content = block.class === BlockClass.Text
         ? $('<p>').text(block.content.length > 100 ? block.content.substring(0, 97) + '...' : block.content)
         : $('<h3>').text('No Preview')
-
-    return blockElement.append(preview)
   }
+
+  return blockElement.append(content)
 }
 
 $(() => {
@@ -59,13 +59,27 @@ $(() => {
     })
 
     infScroll.on('load', (res: ArenaApiResponse) => aestheticGallery.append(...res.contents.map(buildBlock)))
+    infScroll.on('last', () => loadedLast = true)
 
     aestheticGallery.on('scroll', function (event) {
       const trueWidth = this.scrollWidth - $(this).parent().width()
 
+      if (event.target.scrollLeft === 0) {
+        $('#aestheticGalleryContainer').css('mask-image', 'linear-gradient(to right, black 0%, black 90%, transparent 99%)')
+      } else if (event.target.scrollLeft > 0 && (!loadedLast || event.target.scrollLeft < trueWidth)) {
+        $('#aestheticGalleryContainer').css('mask-image', 'linear-gradient(to right, transparent 1%, black 10%, black 90%, transparent 99%)')
+      } else if (event.target.scrollLeft === trueWidth) {
+        $('#aestheticGalleryContainer').css('mask-image', 'linear-gradient(to right, transparent 1%, black 10%, black 100%)')
+      }
+
       if (event.target.scrollLeft >= 0.9 * trueWidth) {
         infScroll.loadNextPage()
       }
+    })
+
+    aestheticGallery.on('wheel', function (event) {
+      event.preventDefault()
+      this.scrollLeft += (event.originalEvent as WheelEvent).deltaY
     })
   }
 })
