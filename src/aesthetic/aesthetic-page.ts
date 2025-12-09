@@ -14,6 +14,25 @@ let loadedLast = false
 let blocks: GalleryContent[] = []
 let pagesLoaded = 0
 
+function modalPrevious(idx: number, infScroll: InfiniteScroll) {
+  if (idx > 0) {
+    openBlock(idx - 1, infScroll)
+  }
+}
+
+function modalNext(idx: number, infScroll: InfiniteScroll) {
+  if (idx < blocks.length - 1) {
+    openBlock(idx + 1, infScroll)
+  } else if (!loadedLast) {
+    $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
+
+    loadNextPage($('#aestheticGallery'), infScroll, () => {
+      // XXX very kludgey ternary
+      openBlock(loadedLast ? idx : idx + 1, infScroll)
+    })
+  }
+}
+
 function openBlock(idx: number, infScroll: InfiniteScroll) {
   const block = blocks[idx]
   let media = $('<p>').text('This media type is not supported.')
@@ -81,21 +100,29 @@ function openBlock(idx: number, infScroll: InfiniteScroll) {
   }
 
   window.onkeyup = (event) => {
-    if (event.key === 'ArrowLeft' && idx > 0) {
-      openBlock(idx - 1, infScroll)
+    if (event.key === 'ArrowLeft') {
+      modalPrevious(idx, infScroll)
     } else if (event.key === 'ArrowRight') {
-      if (idx < blocks.length - 1) {
-        openBlock(idx + 1, infScroll)
-      } else if (!loadedLast) {
-        $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
-
-        loadNextPage($('#aestheticGallery'), infScroll, () => {
-          // XXX very kludgey ternary
-          openBlock(loadedLast ? idx : idx + 1, infScroll)
-        })
-      }
+      modalNext(idx, infScroll)
     }
   }
+
+  const navLeft = $('#aestheticGallerySelection > .nav.left')
+  const navRight = $('#aestheticGallerySelection > .nav.right')
+
+  if (idx === 0) {
+    navLeft.css('visibility', 'hidden')
+    navRight.css('visibility', 'visible')
+  } else if (loadedLast && idx === blocks.length - 1) {
+    navLeft.css('visibility', 'visible')
+    navRight.css('visibility', 'hidden')
+  } else {
+    navLeft.css('visibility', 'visible')
+    navRight.css('visibility', 'visible')
+  }
+
+  navLeft.on('click', () => modalPrevious(idx, infScroll))
+  navRight.on('click', () => modalNext(idx, infScroll))
 
   $('#aestheticGallery').css('overflow', 'hidden');
   ($('cari-modal').get(0) as CariModal).showModal()
