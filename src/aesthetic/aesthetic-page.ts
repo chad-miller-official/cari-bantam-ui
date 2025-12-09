@@ -129,16 +129,7 @@ function buildBlock(block: GalleryContent, idx: number, infScroll: InfiniteScrol
   .data('index', (idx + (20 * pagesLoaded)))
   .on('click', function () {
     selectedIndex = $(this).data('index')
-
     openBlock()
-
-    window.onkeyup = (event) => {
-      if (event.key === 'ArrowLeft') {
-        modalPrevious()
-      } else if (event.key === 'ArrowRight') {
-        modalNext(infScroll)
-      }
-    }
   })
 
   let content: JQuery<HTMLElement>
@@ -245,14 +236,22 @@ $(() => {
     })
 
     const originalWindowOnKeyUp = window.onkeyup
+    const modal = $('cari-modal')
 
-    $('cari-modal').on('close', () => {
+    modal.on('open', () => {
+      window.onkeyup = (event) => {
+        if (event.key === 'ArrowLeft') {
+          modalPrevious()
+        } else if (event.key === 'ArrowRight') {
+          modalNext(infScroll)
+        }
+      }
+    })
+
+    modal.on('close', () => {
       window.onkeyup = originalWindowOnKeyUp
       aestheticGallery.css('overflow', '')
     })
-
-    $('#aestheticGallerySelection > .nav.left').on('click', () => modalPrevious())
-    $('#aestheticGallerySelection > .nav.right').on('click', () => modalNext(infScroll))
   }
 })
 
