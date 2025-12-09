@@ -90,7 +90,8 @@ function openBlock(idx: number, infScroll: InfiniteScroll) {
         $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
 
         loadNextPage($('#aestheticGallery'), infScroll, () => {
-          openBlock(idx + 1, infScroll)
+          // XXX very kludgey ternary
+          openBlock(loadedLast ? idx : idx + 1, infScroll)
         })
       }
     }
