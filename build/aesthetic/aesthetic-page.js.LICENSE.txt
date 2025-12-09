@@ -1,3 +1,11 @@
+/*!
+ * Infinite Scroll v5.0.0
+ * Automatically add next page
+ * MIT License
+ * https://infinite-scroll.com
+ * Copyright 2018-2025 Metafizzy
+ */
+
 /**
  * @license
  * Copyright 2017 Google LLC

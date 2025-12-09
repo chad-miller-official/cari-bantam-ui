@@ -59,4 +59,3 @@
       font-size: smaller;
     }
   `,l([(0,r.MZ)()],h.prototype,"title",void 0),l([(0,r.MZ)()],h.prototype,"author",void 0),l([(0,r.MZ)()],h.prototype,"url",void 0),l([(0,r.MZ)()],h.prototype,"published",void 0),l([(0,r.MZ)()],h.prototype,"previewImageUrl",void 0),l([(0,r.MZ)()],h.prototype,"backgroundColor",void 0),l([(0,r.MZ)()],h.prototype,"textColor",void 0),l([(0,r.MZ)()],h.prototype,"hoverEffect",void 0),h=l([(0,r.EM)("article-preview")],h)})();
-//# sourceMappingURL=article-preview.js.map

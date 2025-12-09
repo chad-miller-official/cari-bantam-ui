@@ -23,6 +23,7 @@ export type GalleryImages = {
   display: GalleryImage,
   original: GalleryImage,
   square: GalleryImage,
+  thumb: GalleryImage,
 }
 
 export type GallerySource = {
