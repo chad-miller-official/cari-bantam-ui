@@ -1,343 +1,215 @@
-import {AestheticBlock} from "./components/aesthetic-block"
-import {ArenaApiResponse, BlockClass, GalleryContent, GalleryImages} from './types'
-import Modal from '../components/modal'
-import CariModal from '../components/modal'
-import {CariPaginator} from '../components/paginator'
-import CariSpinner from '../components/spinner'
-import axios, {AxiosResponse} from 'axios'
-import {css, html, LitElement, TemplateResult} from 'lit'
-import {customElement, property, query, state} from 'lit/decorators.js'
-import {unsafeHTML} from 'lit-html/directives/unsafe-html.js'
-import {styleMap} from 'lit/directives/style-map.js'
-import {PageChanged} from "../events";
+import {AestheticBlock} from "./components/aesthetic-block";
+import {ArenaApiResponse, BlockClass, GalleryContent} from "./types";
+import InfiniteScroll from "infinite-scroll";
+import CariSpinner from "../components/spinner";
+import {CariModal} from "../components/modal";
 
-const maxPageSize = 20
-const textBlockPreviewMaxLength = 100
+declare const mediaSourceUrl: string
 
-@customElement('aesthetic-gallery')
-export class AestheticGallery extends LitElement {
-  static styles = css`
-    @media screen and (max-width: 959px) {
-      .modal-trigger {
-        display: none;
+const MAX_PAGE_SIZE = 20
+
+let totalPages = 1
+let loadedLast = false
+
+let blocks: GalleryContent[] = []
+
+function openBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll) {
+  let media = $('<p>').text('This media type is not supported.')
+
+  switch (block.class) {
+    case BlockClass.Link:
+      media = $('<iframe>')
+      .attr('src', block.source.url)
+      .addClass('website-media')
+
+      break
+    case BlockClass.Image:
+      media = $('<a>')
+      .attr('href', block.image.original.url)
+      .attr('target', '_blank')
+      .append(
+          $('<img>')
+          .attr('src', block.image.display.url)
+          .attr('alt', block.description)
+      )
+
+      break
+    case BlockClass.Attachment:
+      const contentType = block.attachment.content_type
+
+      if (contentType.split('/')[0] === 'video') {
+        const source = $('<source>')
+        .attr('src', block.attachment.url)
+        .text('Your browser does not support video playback.')
+        media = $('<video autoplay controls muted>')
+        .append(source)
+      } else if (contentType === 'application/pdf') {
+        media = $('<object>')
+        .attr('data', block.attachment.url)
+        .attr('type', contentType)
+        .addClass('attachment-media')
       }
-    }
 
-    @media screen and (min-width: 960px) {
-      .no-modal-trigger {
-        display: none;
-      }
-    }
+      break
+    case BlockClass.Media:
+      media = $(block.embed.html)
+      break
+    case BlockClass.Text:
+      media = $('<div>')
+      .addClass('text-media')
+      .html(block.content_html)
 
-    @media screen and (max-width: 600px) {
-      #contentContainer {
-        gap: 3vw;
-        grid-template-columns: auto auto;
-      }
-
-      .gallery-block {
-        height: 40vw;
-        width: 40vw;
-      }
-    }
-
-    @media screen and (min-width: 601px) and (max-width: 959px) {
-      #contentContainer {
-        gap: 3vw;
-        grid-template-columns: auto auto auto auto;
-      }
-
-      .gallery-block {
-        height: 20vw;
-        width: 20vw;
-      }
-    }
-
-    @media screen and (min-width: 960px) {
-      #contentContainer {
-        gap: 10px;
-        grid-template-columns: auto auto auto auto auto;
-      }
-    }
-
-    @media screen and (min-width: 960px) and (max-width: 1231px) {
-      .gallery-block {
-        height: 150px;
-        width: 150px;
-      }
-    }
-
-    @media screen and (min-width: 1232px) {
-      .gallery-block {
-        height: 200px;
-        width: 200px;
-      }
-    }
-
-    #contentContainer {
-      display: grid;
-      justify-content: center;
-    }
-
-    #modalCaption {
-      align-items: flex-end;
-      display: flex;
-      flex-direction: column;
-      flex-grow: 2;
-      gap: 20px;
-    }
-
-    #modalCaption button {
-      font-size: 1em;
-      height: 2em;
-    }
-
-    .gallery-block {
-      background-position: center;
-      background-size: cover;
-      cursor: pointer;
-    }
-
-    .text-block {
-      overflow: scroll;
-      padding: 0 8px 8px 0;
-    }
-
-    figcaption {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 80vh;
-      max-width: 15vw;
-      overflow: scroll;
-      overflow-wrap: anywhere;
-      padding: 0 8px 8px 0;
-      width: auto;
-    }
-
-    figure {
-      background-color: white;
-      display: grid;
-      grid-template-columns: auto auto;
-      grid-column-gap: 24px;
-      margin: 0;
-      padding: 24px;
-    }
-
-    figure > :first-child {
-      max-height: 80vh;
-      max-width: 80vw;
-    }
-
-    figure > :first-child img {
-      max-height: 100%;
-      max-width: 100%;
-      width: 100%;
-    }
-  `
-
-  @property()
-  mediaSourceUrl: string
-
-  @query('#paginator')
-  paginator: CariPaginator
-
-  @query('#modal')
-  modal: CariModal
-
-  @state()
-  galleryContent: GalleryContent[] = []
-
-  @state()
-  modalContent: GalleryContent
-
-  openBlock(block: GalleryContent) {
-    this.modalContent = block
-    this.modal.open = true
+      break
   }
 
-  buildBlock(block: GalleryContent): TemplateResult {
-    const blockClass = block.class
+  $('#aestheticGallerySelection > .media').empty().append(media)
+  $('#aestheticGallerySelection > .sidebar .title').text(block.title || '(no title)')
+  $('#aestheticGallerySelection > .sidebar .description').html(block.description_html || '(no description)')
 
-    if (blockClass === BlockClass.Link || blockClass === BlockClass.Image || blockClass ===
-        BlockClass.Media) {
-      const style = styleMap({'background-image': `url(${block.image.square.url})`})
+  const sidebarWebsite = $('#aestheticGallerySelection > .sidebar .website')
 
-      return html`
-        <div style=${style} class="gallery-block modal-trigger"
-             @click=${() => this.openBlock(block)}></div>
-        <a href=${block.source?.url || block.image.original.url} class="no-modal-trigger"
-           target="_blank" rel="noopener noreferrer">
-          <div style=${style} class="gallery-block"></div>
-        </a>`
-    } else if (blockClass === BlockClass.Text) {
-      const blockContent = block.content
+  if (block.class === BlockClass.Link) {
+    sidebarWebsite
+    .css('display', 'block')
+    .children('a')
+      .attr('href', block.source.url)
 
-      const contentPreview = html`
-        <p>
-          ${blockContent.length >= textBlockPreviewMaxLength ?
-              blockContent.substring(0, textBlockPreviewMaxLength - 3) + '...' : blockContent}
-        </p>`
+  } else {
+    sidebarWebsite.css('display', 'none')
+  }
 
-      return html`
-        <div class="gallery-block modal-trigger" @click=${() => this.openBlock(block)}>
-          ${contentPreview}
-        </div>
-        <div class="gallery-block no-modal-trigger">
-          ${contentPreview}
-        </div>`
-    } else if (blockClass === BlockClass.Attachment) {
-      const blockImage: GalleryImages = block.image
-
-      if (blockImage) {
-        const style = styleMap({'background-image': `url(${blockImage.square.url})`})
-
-        if (block.attachment.content_type.split('/')[0] === 'video') {
-          return html`
-            <div style=${style} class="gallery-block modal-trigger"
-                 @click=${() => this.openBlock(block)}></div>
-            <a href=${block.attachment.url} class="no-modal-trigger" target="_blank"
-               rel="noopener noreferrer">
-              <div style=${style} class="gallery-block"></div>
-            </a>`
-        } else {
-          return html`
-            <a href=${block.attachment.url} target="_blank" rel="noopener noreferrer">
-              <div style=${style} class="gallery-block"></div>
-            </a>`
-        }
+  window.onkeyup = (event) => {
+    if (event.key === 'ArrowLeft' && idx > 0) {
+      openBlock(blocks[idx - 1], idx - 1, infScroll)
+    } else if (event.key === 'ArrowRight') {
+      if (idx < blocks.length - 1) {
+        openBlock(blocks[idx + 1], idx + 1, infScroll)
       } else {
-        const preview = html`
-          <h3>
-            No Preview
-            <br/>
-            ${block.attachment.content_type}
-          </h3>`
+        $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
 
-        return html`
-          <div class="gallery-block modal-trigger" @click=${() => this.openBlock(block)}>
-            ${preview}
-          </div>
-          <a href=${block.attachment.url} class="no-modal-trigger" target="_blank"
-             rel="noopener noreferrer">
-            <div class="gallery-block">
-              ${preview}
-            </div>
-          </a>`
+        loadNextPage($('#aestheticGallery'), infScroll, () => {
+          openBlock(blocks[idx + 1], idx + 1, infScroll)
+        })
       }
-    } else {
-      const preview = html`
-        <h3>
-          No Preview
-          <br/>
-          ${blockClass}
-        </h3>`
-
-      return html`
-        <div class="gallery-block modal-trigger" @click=${() => this.openBlock(block)}>
-          ${preview}
-        </div>
-        <div class="gallery-block no-modal-trigger">
-          ${preview}
-        </div>`
     }
   }
 
-  connectedCallback() {
-    super.connectedCallback()
+  $('#aestheticGallery').css('overflow', 'hidden');
+  ($('cari-modal').get(0) as CariModal).showModal()
+}
 
-    axios.get<ArenaApiResponse>(`${this.mediaSourceUrl}?page=1&per=${maxPageSize}`)
-    .then((res: AxiosResponse<ArenaApiResponse>) => {
-      const responseData: ArenaApiResponse = res.data
-      this.galleryContent = responseData.contents
-      this.paginator.pageCount = (Math.floor(responseData.length / maxPageSize) + 1)
+function buildBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll): JQuery<HTMLElement> {
+  const blockElement = $('<div>')
+  .addClass('aesthetic-gallery-block')
+  .on('click', () => openBlock(block, idx, infScroll))
+
+  let content: JQuery<HTMLElement>
+
+  if (
+      block.class === BlockClass.Link ||
+      block.class === BlockClass.Image ||
+      block.class === BlockClass.Media ||
+      (block.class === BlockClass.Attachment && block.image)
+  ) {
+    content = $('<img>').addClass('image-preview')
+    .attr('src', block.image.square.url)
+    .attr('alt', block.title)
+  } else {
+    content = block.class === BlockClass.Text
+        ? $('<p>').addClass('text-preview').text(block.content)
+        : $('<h3>').text('No Preview')
+  }
+
+  return blockElement.append(content)
+}
+
+function loadNextPage(container: JQuery<HTMLElement>, infScroll: InfiniteScroll, loadedCallback?: () => void) {
+  let cariSpinner = container.children('cari-spinner')
+
+  if (!cariSpinner.length) {
+    cariSpinner = $(new CariSpinner())
+  }
+
+  container.append(cariSpinner)
+  const loadNextPage = infScroll.loadNextPage()
+
+  if (loadNextPage) {
+    loadNextPage.then(() => {
+      cariSpinner.remove()
+
+      if (loadedCallback) {
+        loadedCallback()
+      }
     })
-  }
-
-  onPageChanged(event: CustomEvent<PageChanged>) {
-    this.galleryContent = []
-
-    axios.get<ArenaApiResponse>(`${this.mediaSourceUrl}?page=${event.detail.newPage}&per=${maxPageSize}`)
-    .then((res: AxiosResponse<ArenaApiResponse>) => this.galleryContent = res.data.contents)
-  }
-
-  closeModal() {
-    this.modalContent = undefined
-  }
-
-  renderModalContent(): TemplateResult<1> {
-    if (this.modalContent) {
-      const blockClass = this.modalContent.class
-
-      if (blockClass === BlockClass.Link || blockClass == BlockClass.Image) {
-        const image = this.modalContent.image
-
-        return html`
-          <a href=${this.modalContent.source?.url || image.original.url} target="_blank"
-             rel="noopener noreferrer">
-            <img alt=${this.modalContent.description} src=${image.display.url}/>
-          </a>`
-      } else if (blockClass === BlockClass.Attachment) {
-        const attachment = this.modalContent.attachment
-        const contentType = attachment.content_type
-        const contentTypeParts = contentType.split('/')
-
-        if (contentTypeParts[0] === 'video') {
-          return html`
-            <video autoplay controls muted>
-              <source src=${attachment.url}/>
-              Your browser does not support video playback.
-            </video>`
-        } else {
-          return html`<p>This media type is not yet supported.</p>`
-        }
-      } else if (blockClass === BlockClass.Media) {
-        return html`${unsafeHTML(this.modalContent.embed.html)}`
-      } else if (blockClass === BlockClass.Text) {
-        return html`
-          <div class="text-block">${unsafeHTML(this.modalContent.content_html)}</div>`
-      } else {
-        return html`<p>This media type is not yet supported.</p>`
-      }
-    }
-
-    return null
-  }
-
-  render() {
-    let content: TemplateResult | CariSpinner
-
-    if (this.galleryContent.length > 0) {
-      content = html`
-        <div id="contentContainer">
-          ${this.galleryContent.map((block: GalleryContent) => this.buildBlock(block))}
-        </div>`
-    } else {
-      content = new CariSpinner()
-    }
-
-    const title = this.modalContent?.title
-    const description = this.modalContent?.description_html
-
-    return html`
-      ${content}
-      <cari-paginator id="paginator" @pagechanged=${this.onPageChanged}></cari-paginator>
-      <cari-modal id="modal" @modalclosed=${this.closeModal}>
-        <figure>
-          ${this.renderModalContent()}
-          <figcaption>
-            <div>
-              <strong>Title</strong>
-              <p>${title ? unsafeHTML(title) : '(untitled)'}</p>
-            </div>
-            <div>
-              <strong>Description</strong>
-              ${description ? unsafeHTML(description) : html`<p>(no description)</p>`}
-            </div>
-          </figcaption>
-        </figure>
-      </cari-modal>`
   }
 }
 
-export {AestheticBlock, CariPaginator, CariSpinner, Modal}
+$(() => {
+  const aestheticGallery = $('#aestheticGallery')
+
+  if (aestheticGallery.length) {
+    const data = {
+      page: 1,
+      per: MAX_PAGE_SIZE,
+    }
+
+    const infScroll = new InfiniteScroll(aestheticGallery.get(0), {
+      path: () => {
+        const infScroll = InfiniteScroll.data('#aestheticGallery')
+
+        if (infScroll.pageIndex - 1 < totalPages) {
+          return `${mediaSourceUrl}?page=${infScroll.pageIndex + 1}&per=${MAX_PAGE_SIZE}`
+        }
+      },
+      responseBody: 'json',
+      history: false,
+      scrollThreshold: false,
+    })
+
+    $.get(mediaSourceUrl, data, (res: ArenaApiResponse) => {
+      totalPages = Math.ceil(res.length / MAX_PAGE_SIZE)
+      aestheticGallery.append(...res.contents.map((block, idx) => buildBlock(block, idx, infScroll)))
+      blocks.push(...res.contents)
+    })
+
+    infScroll.on('load', (res: ArenaApiResponse) => {
+      aestheticGallery.append(...res.contents.map((block, idx) => buildBlock(block, idx, infScroll)))
+      blocks.push(...res.contents)
+    })
+
+    infScroll.on('last', () => loadedLast = true)
+
+    aestheticGallery.on('scroll', function (event) {
+      const trueWidth = this.scrollWidth - $(this).parent().width()
+      let maskImage = 'initial'
+
+      if (event.target.scrollLeft === 0) {
+        maskImage = 'linear-gradient(to right, black 0%, black 90%, transparent 99%)'
+      } else if (event.target.scrollLeft > 0 && (!loadedLast || event.target.scrollLeft < trueWidth)) {
+        maskImage = 'linear-gradient(to right, transparent 1%, black 10%, black 90%, transparent 99%)'
+      } else if (event.target.scrollLeft === trueWidth) {
+        maskImage = 'linear-gradient(to right, transparent 1%, black 10%, black 100%)'
+      }
+
+      $('#aestheticGalleryContainer').css('mask-image', maskImage)
+
+      if (!loadedLast && event.target.scrollLeft >= 0.9 * trueWidth) {
+        loadNextPage($(this), infScroll)
+      }
+    })
+
+    aestheticGallery.on('wheel', function (event) {
+      event.preventDefault()
+      this.scrollBy({left: (event.originalEvent as WheelEvent).deltaY})
+    })
+
+    const originalWindowOnKeyUp = window.onkeyup
+
+    $('cari-modal').on('close', () => {
+      window.onkeyup = originalWindowOnKeyUp
+      aestheticGallery.css('overflow', '')
+    })
+  }
+})
+
+export {AestheticBlock, CariModal}

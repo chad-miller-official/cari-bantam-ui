@@ -10,6 +10,7 @@ import {
 } from "./form-common";
 import {FullscreenSpinner} from "../../components/spinner";
 import {RedirectResponse} from "../types";
+import {CariModal} from "../../components/modal";
 
 // Avoid having to import tinymce within this file
 declare const tinymce: {
@@ -100,7 +101,7 @@ function handlePreviewButtonClick(event) {
 
   tinymce.activeEditor.save();
 
-  ($('#modal').get(0) as HTMLDialogElement).showModal()
+  ($('cari-modal').get(0) as CariModal).showModal()
   $('body').css('overflow', 'hidden')
 
   const titleEditor = $('#titleEditor')
@@ -200,8 +201,7 @@ $(() => {
 
   setup(setupObject)
 
-  $('#modal').on('close', () => $('body').css('overflow', 'initial'))
   $('#previewButton').on('click', handlePreviewButtonClick)
 })
 
-export {ArticlePreview, ArticleReader, FullscreenSpinner}
+export {ArticlePreview, ArticleReader, CariModal, FullscreenSpinner}

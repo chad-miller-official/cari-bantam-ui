@@ -1,7 +1,6 @@
 import {stringify} from 'qs'
 
 import {Aesthetic} from './types'
-import {CariPaginator} from '../components/paginator'
 import CariSpinner from '../components/spinner'
 import {FormValidationError} from '../exception/exception'
 import {Page} from '../types'
@@ -337,4 +336,4 @@ $(() => {
   infScroll.on('load', handleApiResponse)
 })
 
-export {AestheticBlock, CariPaginator, CariSpinner}
+export {AestheticBlock, CariSpinner}
