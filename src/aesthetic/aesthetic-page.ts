@@ -12,8 +12,10 @@ let totalPages = 1
 let loadedLast = false
 
 let blocks: GalleryContent[] = []
+let pagesLoaded = 0
 
-function openBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll) {
+function openBlock(idx: number, infScroll: InfiniteScroll) {
+  const block = blocks[idx]
   let media = $('<p>').text('This media type is not supported.')
 
   switch (block.class) {
@@ -72,7 +74,7 @@ function openBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll
     sidebarWebsite
     .css('display', 'block')
     .children('a')
-      .attr('href', block.source.url)
+    .attr('href', block.source.url)
 
   } else {
     sidebarWebsite.css('display', 'none')
@@ -80,15 +82,15 @@ function openBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll
 
   window.onkeyup = (event) => {
     if (event.key === 'ArrowLeft' && idx > 0) {
-      openBlock(blocks[idx - 1], idx - 1, infScroll)
+      openBlock(idx - 1, infScroll)
     } else if (event.key === 'ArrowRight') {
       if (idx < blocks.length - 1) {
-        openBlock(blocks[idx + 1], idx + 1, infScroll)
-      } else {
+        openBlock(idx + 1, infScroll)
+      } else if (!loadedLast) {
         $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
 
         loadNextPage($('#aestheticGallery'), infScroll, () => {
-          openBlock(blocks[idx + 1], idx + 1, infScroll)
+          openBlock(idx + 1, infScroll)
         })
       }
     }
@@ -101,7 +103,10 @@ function openBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll
 function buildBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll): JQuery<HTMLElement> {
   const blockElement = $('<div>')
   .addClass('aesthetic-gallery-block')
-  .on('click', () => openBlock(block, idx, infScroll))
+  .data('index', (idx + (20 * pagesLoaded)))
+  .on('click', function () {
+    openBlock($(this).data('index'), infScroll)
+  })
 
   let content: JQuery<HTMLElement>
 
@@ -169,12 +174,15 @@ $(() => {
     $.get(mediaSourceUrl, data, (res: ArenaApiResponse) => {
       totalPages = Math.ceil(res.length / MAX_PAGE_SIZE)
       aestheticGallery.append(...res.contents.map((block, idx) => buildBlock(block, idx, infScroll)))
+
       blocks.push(...res.contents)
+      pagesLoaded += 1
     })
 
     infScroll.on('load', (res: ArenaApiResponse) => {
       aestheticGallery.append(...res.contents.map((block, idx) => buildBlock(block, idx, infScroll)))
       blocks.push(...res.contents)
+      pagesLoaded += 1
     })
 
     infScroll.on('last', () => loadedLast = true)
