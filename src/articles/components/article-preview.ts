@@ -1,7 +1,7 @@
 import {css, html, LitElement} from "lit";
 import {customElement, property} from "lit/decorators.js";
 import {styleMap} from "lit/directives/style-map.js";
-import {dateToString, invertColor} from "../../util";
+import {dateToString} from "../../util";
 
 @customElement('article-preview')
 export class ArticlePreview extends LitElement {

@@ -2,21 +2,34 @@ import {ArticlePreview} from "../../articles/components/article-preview";
 import {dateToString, invertColor} from "../../util";
 import {FullscreenSpinner} from "../../components/spinner";
 import {RedirectResponse, ValidationException} from "../types";
+import axios, {AxiosResponse} from "axios";
+import {Csrf} from "../../types";
+import jqXHR = JQuery.jqXHR;
+
+declare const _csrf: Csrf
 
 declare const originalAuthor: string
 declare const originalAuthorName: string
 declare const originalPublished: string
 declare const originalPublishedString: string
 
+export const FILE_MAX_SIZE = '10MB'
+
 export enum SubmitMode {
   SAVE = 'SAVE',
   PUBLISH = 'PUBLISH',
+}
+
+export enum ArticleType {
+  SELF_HOSTED = 'SELF_HOSTED',
+  OFF_SITE = 'OFF_SITE'
 }
 
 let changeDetected = false
 
 export class ArticleSetupObject {
   submitButton: JQuery<HTMLButtonElement>
+  type: ArticleType
 
   constructor(submitButtonSelector: string) {
     this.submitButton = $(submitButtonSelector)
@@ -43,6 +56,44 @@ export class ArticleSetupObject {
     } else {
       this.disableSubmitButton()
     }
+  }
+
+  public async allocatePk() {
+    const pkArticle = $('#article')
+
+    if (!pkArticle.val()) {
+      const axiosData = {[_csrf.parameterName]: _csrf.token}
+
+      const axiosConfig = {
+        withCredentials: true,
+        xsrfHeaderName: _csrf.headerName,
+        headers: {[_csrf.headerName]: _csrf.token},
+      }
+
+      const allocateIdResponse: AxiosResponse<number> = await axios.post<number>(`/api/cms/articles/allocate-id?type=${this.type}`, axiosData, axiosConfig)
+      pkArticle.val(allocateIdResponse.data)
+    }
+  }
+
+  public saveArticle() {
+    $('#articleForm').trigger('submit', {
+      mode: SubmitMode.SAVE,
+      onSuccess: () => {
+        changeDetected = false
+
+        $('#saveButton').attr('disabled', 'disabled')
+        $('#saveMessage').css('display', 'initial');
+
+        ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
+      },
+    })
+  }
+
+  public publishArticle() {
+    $('#articleForm').trigger('submit', {
+      mode: SubmitMode.PUBLISH,
+      onSuccess: (res: RedirectResponse) => window.location.href = res.location
+    })
   }
 
   public validate(): boolean {
@@ -95,10 +146,9 @@ export class ArticleSetupObject {
 
   public triggerChangeDetected() {
     changeDetected = true
-  }
 
-  public resetChangeDetected() {
-    changeDetected = false
+    $('#saveButton').removeAttr('disabled')
+    $('#saveMessage').css('display', '')
   }
 }
 
@@ -292,73 +342,84 @@ function handlePublisherOverrideChange(event) {
   setupObject.toggleSubmitButton()
 }
 
+function handleSubmitError(jqXHR: jqXHR) {
+  if (jqXHR.status === 503) {
+    const error = jqXHR.responseJSON as RedirectResponse
+    alert(error.error)
+  } else {
+    let elemId: string
+    let validationMessageCssProp = 'display'
+    let validationMessageCssValue = 'initial'
+    let errorMessage: string
+
+    if (jqXHR.status == 413) {
+      elemId = 'previewImage'
+      errorMessage = `Preview image too large. Maximum size: ${FILE_MAX_SIZE}`
+    } else {
+      const error = jqXHR.responseJSON as ValidationException
+      elemId = error.fieldName
+      errorMessage = error.message
+
+      switch (elemId) {
+        case 'title':
+          elemId = 'titleEditor'
+          break
+        case 'summary':
+          elemId = 'summaryEditor'
+          validationMessageCssProp = 'visibility'
+          validationMessageCssValue = 'visible'
+          break
+        case 'previewImageFile':
+          elemId = 'previewImage'
+          break
+      }
+    }
+
+    $(`#${elemId}`).parent().children('.validation-message')
+    .css(validationMessageCssProp, validationMessageCssValue).text(errorMessage)
+  }
+
+  closeSpinner()
+}
+
 function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: ArticleSetupObject) {
   event.preventDefault()
-
-  const submitMode = (data || {mode: SubmitMode.PUBLISH}).mode
 
   $('#realAuthor').val($('#author').val())
   $('#realAuthorOverride').val($('#authorOverride').val())
   $('#realPublished').val($('#published').val())
 
-  const defaultOnSuccess = (res: RedirectResponse) => window.location.href = res.redirectTo
-  const onSuccess = (data || {onSuccess: defaultOnSuccess}).onSuccess
+  const submitMode = data.mode
 
-  const valid = submitMode === SubmitMode.SAVE ? true : setupObject.validate()
+  if (submitMode === SubmitMode.SAVE || setupObject.validate()) {
+    showSpinner()
 
-  const formData = new FormData(form.get(0))
-  formData.set('submitMode', submitMode.toString())
-
-  if (valid) {
-    const spinner = ($('fullscreen-spinner').get(0) as FullscreenSpinner)
-    spinner.showModal()
+    const formData = new FormData(form.get(0))
+    formData.set('submitMode', submitMode.toString())
 
     $.ajax({
       url: form.attr('action'),
       data: formData,
       processData: false,
       contentType: false,
-      method: submitMode === SubmitMode.SAVE ? 'put' : 'post',
-      success: onSuccess,
+      method: 'put',
+      success: data.onSuccess,
       error: (jqXHR) => {
-        let elemId = ''
-        let validationMessageCssProp = 'display'
-        let validationMessageCssValue = 'initial'
-        let errorMessage = ''
-
-        if (jqXHR.status == 413) {
-          elemId = 'body'
-          errorMessage = 'Post too large. Please remove and re-insert all embedded media via the Insert drop-down menu in the toolbar.'
-        } else {
-          const error = jqXHR.responseJSON as ValidationException
-          elemId = error.fieldName
-          errorMessage = error.message
-
-          switch (elemId) {
-            case 'title':
-              elemId = 'titleEditor'
-              break
-            case 'summary':
-              elemId = 'summaryEditor'
-              validationMessageCssProp = 'visibility'
-              validationMessageCssValue = 'visible'
-              break
-            case 'previewImageFile':
-              elemId = 'previewImage'
-              break
-          }
-        }
-
-        $(`#${elemId}`).parent().children('.validation-message')
-        .css(validationMessageCssProp, validationMessageCssValue).text(errorMessage)
-
-        spinner.close()
+        handleSubmitError(jqXHR)
         setupObject.onFormInvalid()
       },
     })
   } else {
     setupObject.onFormInvalid()
   }
+}
+
+export function showSpinner() {
+  ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
+}
+
+export function closeSpinner() {
+  ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
 }
 
 export function setup(setupObject: ArticleSetupObject) {
@@ -406,6 +467,16 @@ export function setup(setupObject: ArticleSetupObject) {
 
   $('#articleForm').on('submit', function (event, data) {
     handleSubmit(event, data, $(this) as JQuery<HTMLFormElement>, setupObject)
+  })
+
+  $('#saveButton').on('click', async () => {
+    await setupObject.allocatePk()
+    setupObject.saveArticle()
+  })
+
+  $('#publishButton').on('click', async () => {
+    await setupObject.allocatePk()
+    setupObject.publishArticle()
   })
 
   $('#cancelButton').on('click', () => setupObject.cancel())
