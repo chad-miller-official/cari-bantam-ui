@@ -16,29 +16,6 @@ let pagesLoaded = 0
 
 let selectedIndex: number
 
-function modalPrevious() {
-  if (selectedIndex > 0) {
-    selectedIndex -= 1
-    openBlock()
-  }
-}
-
-function modalNext(infScroll: InfiniteScroll) {
-  if (selectedIndex < blocks.length - 1) {
-    openBlock()
-  } else if (!loadedLast) {
-    $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
-
-    loadNextPage($('#aestheticGallery'), infScroll, () => {
-      if (!loadedLast) {
-        selectedIndex += 1
-      }
-
-      openBlock()
-    })
-  }
-}
-
 function openBlock() {
   const block = blocks[selectedIndex]
   let media = $('<p>').text('This media type is not supported.')
@@ -241,9 +218,25 @@ $(() => {
     modal.on('open', () => {
       window.onkeyup = (event) => {
         if (event.key === 'ArrowLeft') {
-          modalPrevious()
+          if (selectedIndex > 0) {
+            selectedIndex -= 1
+            openBlock()
+          }
         } else if (event.key === 'ArrowRight') {
-          modalNext(infScroll)
+          if (selectedIndex < blocks.length - 1) {
+            selectedIndex += 1
+            openBlock()
+          } else if (!loadedLast) {
+            $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
+
+            loadNextPage($('#aestheticGallery'), infScroll, () => {
+              if (!loadedLast) {
+                selectedIndex += 1
+              }
+
+              openBlock()
+            })
+          }
         }
       }
     })
