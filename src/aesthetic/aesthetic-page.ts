@@ -14,27 +14,10 @@ let loadedLast = false
 let blocks: GalleryContent[] = []
 let pagesLoaded = 0
 
-function modalPrevious(idx: number, infScroll: InfiniteScroll) {
-  if (idx > 0) {
-    openBlock(idx - 1, infScroll)
-  }
-}
+let selectedIndex: number
 
-function modalNext(idx: number, infScroll: InfiniteScroll) {
-  if (idx < blocks.length - 1) {
-    openBlock(idx + 1, infScroll)
-  } else if (!loadedLast) {
-    $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
-
-    loadNextPage($('#aestheticGallery'), infScroll, () => {
-      // XXX very kludgey ternary
-      openBlock(loadedLast ? idx : idx + 1, infScroll)
-    })
-  }
-}
-
-function openBlock(idx: number, infScroll: InfiniteScroll) {
-  const block = blocks[idx]
+function openBlock() {
+  const block = blocks[selectedIndex]
   let media = $('<p>').text('This media type is not supported.')
 
   switch (block.class) {
@@ -99,30 +82,19 @@ function openBlock(idx: number, infScroll: InfiniteScroll) {
     sidebarWebsite.css('display', 'none')
   }
 
-  window.onkeyup = (event) => {
-    if (event.key === 'ArrowLeft') {
-      modalPrevious(idx, infScroll)
-    } else if (event.key === 'ArrowRight') {
-      modalNext(idx, infScroll)
-    }
-  }
-
   const navLeft = $('#aestheticGallerySelection > .nav.left')
   const navRight = $('#aestheticGallerySelection > .nav.right')
 
-  if (idx === 0) {
+  if (selectedIndex === 0) {
     navLeft.css('visibility', 'hidden')
     navRight.css('visibility', 'visible')
-  } else if (loadedLast && idx === blocks.length - 1) {
+  } else if (loadedLast && selectedIndex === blocks.length - 1) {
     navLeft.css('visibility', 'visible')
     navRight.css('visibility', 'hidden')
   } else {
     navLeft.css('visibility', 'visible')
     navRight.css('visibility', 'visible')
   }
-
-  navLeft.on('click', () => modalPrevious(idx, infScroll))
-  navRight.on('click', () => modalNext(idx, infScroll))
 
   $('#aestheticGallery').css('overflow', 'hidden');
   ($('cari-modal').get(0) as CariModal).showModal()
@@ -133,7 +105,8 @@ function buildBlock(block: GalleryContent, idx: number, infScroll: InfiniteScrol
   .addClass('aesthetic-gallery-block')
   .data('index', (idx + (20 * pagesLoaded)))
   .on('click', function () {
-    openBlock($(this).data('index'), infScroll)
+    selectedIndex = $(this).data('index')
+    openBlock()
   })
 
   let content: JQuery<HTMLElement>
@@ -240,8 +213,35 @@ $(() => {
     })
 
     const originalWindowOnKeyUp = window.onkeyup
+    const modal = $('cari-modal')
 
-    $('cari-modal').on('close', () => {
+    modal.on('open', () => {
+      window.onkeyup = (event) => {
+        if (event.key === 'ArrowLeft') {
+          if (selectedIndex > 0) {
+            selectedIndex -= 1
+            openBlock()
+          }
+        } else if (event.key === 'ArrowRight') {
+          if (selectedIndex < blocks.length - 1) {
+            selectedIndex += 1
+            openBlock()
+          } else if (!loadedLast) {
+            $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
+
+            loadNextPage($('#aestheticGallery'), infScroll, () => {
+              if (!loadedLast) {
+                selectedIndex += 1
+              }
+
+              openBlock()
+            })
+          }
+        }
+      }
+    })
+
+    modal.on('close', () => {
       window.onkeyup = originalWindowOnKeyUp
       aestheticGallery.css('overflow', '')
     })

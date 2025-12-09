@@ -53,6 +53,7 @@ export class CariModal extends LitElement {
   showModal() {
     document.body.style.overflow = 'hidden'
     this.modal.showModal()
+    this.dispatchEvent(new Event('open'))
   }
 
   render() {
