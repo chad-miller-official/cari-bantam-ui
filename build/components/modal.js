@@ -49,4 +49,3 @@
         color: #414141;
       }
     }`,n([(0,o.P)("#modal")],r.prototype,"modal",void 0),r=n([(0,o.EM)("cari-modal")],r)})();
-//# sourceMappingURL=modal.js.map

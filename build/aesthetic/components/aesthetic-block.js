@@ -94,4 +94,3 @@
       text-decoration: none;
     }
   `,d([(0,n.MZ)()],u.prototype,"name",void 0),d([(0,n.MZ)()],u.prototype,"startYear",void 0),d([(0,n.MZ)()],u.prototype,"endYear",void 0),d([(0,n.MZ)()],u.prototype,"urlSlug",void 0),d([(0,n.MZ)()],u.prototype,"displayImageUrl",void 0),d([(0,n.MZ)()],u.prototype,"preview",void 0),d([(0,n.MZ)()],u.prototype,"jobExecution",void 0),u=d([(0,n.EM)("aesthetic-block")],u)})();
-//# sourceMappingURL=aesthetic-block.js.map

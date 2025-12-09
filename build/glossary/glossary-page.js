@@ -215,4 +215,3 @@
       font-size: 1.75em;
     }
   `,_t([(0,o.MZ)()],Ot.prototype,"apiEndpoint",void 0),_t([(0,o.wk)()],Ot.prototype,"currentLetter",void 0),_t([(0,o.KN)({slot:"glossaryTerms"})],Ot.prototype,"glossaryTerms",void 0),Ot=_t([(0,o.EM)("glossary-terms-list")],Ot)})();
-//# sourceMappingURL=glossary-page.js.map

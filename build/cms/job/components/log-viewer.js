@@ -12,4 +12,3 @@
       white-space: pre-wrap;
     }
   `,o([(0,s.KN)({slot:"logs"})],r.prototype,"logItems",void 0),o([(0,s.wk)()],r.prototype,"showHiddenLogs",void 0),r=o([(0,s.EM)("log-viewer")],r)})();
-//# sourceMappingURL=log-viewer.js.map

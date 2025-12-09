@@ -38,4 +38,3 @@
     dialog::backdrop {
       background-color: rgba(0, 0, 0, 0.2);
     }`,o([(0,n.P)("#modal")],l.prototype,"modal",void 0),l=o([(0,n.EM)("fullscreen-spinner")],l)})();
-//# sourceMappingURL=spinner.js.map
