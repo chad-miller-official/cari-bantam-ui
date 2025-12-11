@@ -1,1 +1,1 @@
-(()=>{"use strict";var t;(function(t){t.Attachment="Attachment",t.Image="Image",t.Link="Link",t.Media="Media",t.Text="Text"})(t||(t={}))})();
+(()=>{"use strict";var e;(function(e){e.Attachment="Attachment",e.Channel="Channel",e.Image="Image",e.Link="Link",e.Media="Media",e.Text="Text"})(e||(e={}))})();
