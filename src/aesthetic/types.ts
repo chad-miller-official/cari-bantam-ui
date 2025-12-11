@@ -1,5 +1,6 @@
 export enum BlockClass {
   Attachment = 'Attachment',
+  Channel = 'Channel',
   Image = 'Image',
   Link = 'Link',
   Media = 'Media',

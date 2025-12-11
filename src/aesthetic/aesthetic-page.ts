@@ -22,9 +22,20 @@ function openBlock() {
 
   switch (block.class) {
     case BlockClass.Link:
-      media = $('<iframe>')
-      .attr('src', block.source.url)
-      .addClass('website-media')
+      if (block.source.url.startsWith('https://')) {
+        media = $('<iframe>')
+        .attr('src', block.source.url)
+        .addClass('website-media')
+      } else {
+        const linkPreview = $('<img>')
+        .attr('src', block.image.display.url)
+        .attr('alt', block.description)
+
+        media = $('<a>')
+        .attr('href', block.source.url)
+        .attr('target', 'blank')
+        .append(linkPreview)
+      }
 
       break
     case BlockClass.Image:
@@ -100,7 +111,7 @@ function openBlock() {
   ($('cari-modal').get(0) as CariModal).showModal()
 }
 
-function buildBlock(block: GalleryContent, idx: number, infScroll: InfiniteScroll): JQuery<HTMLElement> {
+function buildBlock(block: GalleryContent, idx: number): JQuery<HTMLElement> {
   const blockElement = $('<div>')
   .addClass('aesthetic-gallery-block')
   .data('index', (idx + (20 * pagesLoaded)))
@@ -150,6 +161,13 @@ function loadNextPage(container: JQuery<HTMLElement>, infScroll: InfiniteScroll,
   }
 }
 
+function handleArenaApiResponse(res: ArenaApiResponse) {
+  const resToShow = res.contents.filter(block => block.class !== BlockClass.Channel)
+  $('#aestheticGallery').append(...resToShow.map((block, idx) => buildBlock(block, idx)))
+  blocks.push(...resToShow)
+  pagesLoaded += 1
+}
+
 $(() => {
   const aestheticGallery = $('#aestheticGallery')
 
@@ -174,18 +192,10 @@ $(() => {
 
     $.get(mediaSourceUrl, data, (res: ArenaApiResponse) => {
       totalPages = Math.ceil(res.length / MAX_PAGE_SIZE)
-      aestheticGallery.append(...res.contents.map((block, idx) => buildBlock(block, idx, infScroll)))
-
-      blocks.push(...res.contents)
-      pagesLoaded += 1
+      handleArenaApiResponse(res)
     })
 
-    infScroll.on('load', (res: ArenaApiResponse) => {
-      aestheticGallery.append(...res.contents.map((block, idx) => buildBlock(block, idx, infScroll)))
-      blocks.push(...res.contents)
-      pagesLoaded += 1
-    })
-
+    infScroll.on('load', handleArenaApiResponse)
     infScroll.on('last', () => loadedLast = true)
 
     aestheticGallery.on('scroll', function (event) {
@@ -207,13 +217,9 @@ $(() => {
       }
     })
 
-    aestheticGallery.on('wheel', function (event) {
-      event.preventDefault()
-      this.scrollBy({left: (event.originalEvent as WheelEvent).deltaY})
-    })
-
     const originalWindowOnKeyUp = window.onkeyup
     const modal = $('cari-modal')
+    const media = $('#aestheticGallerySelection > .media')
 
     modal.on('open', () => {
       window.onkeyup = (event) => {
@@ -227,7 +233,7 @@ $(() => {
             selectedIndex += 1
             openBlock()
           } else if (!loadedLast) {
-            $('#aestheticGallerySelection > .media').empty().append($(new CariSpinner()))
+            media.empty().append($(new CariSpinner()))
 
             loadNextPage($('#aestheticGallery'), infScroll, () => {
               if (!loadedLast) {
@@ -242,6 +248,7 @@ $(() => {
     })
 
     modal.on('close', () => {
+      media.empty()
       window.onkeyup = originalWindowOnKeyUp
       aestheticGallery.css('overflow', '')
     })
