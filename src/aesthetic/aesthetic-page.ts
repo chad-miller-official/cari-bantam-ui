@@ -1,7 +1,6 @@
 import {AestheticBlock} from "./components/aesthetic-block";
 import {ArenaApiResponse, BlockClass, GalleryContent} from "./types";
 import InfiniteScroll from "infinite-scroll";
-import CariSpinner from "../components/spinner";
 import {CariModal} from "../components/modal";
 
 declare const mediaSourceUrl: string
@@ -140,27 +139,6 @@ function buildBlock(block: GalleryContent, idx: number): JQuery<HTMLElement> {
   return blockElement.append(content)
 }
 
-function loadNextPage(container: JQuery<HTMLElement>, infScroll: InfiniteScroll, loadedCallback?: () => void) {
-  let cariSpinner = container.children('cari-spinner')
-
-  if (!cariSpinner.length) {
-    cariSpinner = $(new CariSpinner())
-  }
-
-  container.append(cariSpinner)
-  const loadNextPage = infScroll.loadNextPage()
-
-  if (loadNextPage) {
-    loadNextPage.then(() => {
-      cariSpinner.remove()
-
-      if (loadedCallback) {
-        loadedCallback()
-      }
-    })
-  }
-}
-
 function handleArenaApiResponse(res: ArenaApiResponse) {
   const resToShow = res.contents.filter(block => block.class !== BlockClass.Channel)
   $('#aestheticGallery').append(...resToShow.map((block, idx) => buildBlock(block, idx)))
@@ -224,13 +202,11 @@ $(() => {
             selectedIndex += 1
             openBlock()
           } else if (!loadedLast) {
-            media.empty().append($(new CariSpinner()))
+            const spinner = $('<div>').addClass('.spinner')
+            media.empty().append(spinner)
 
-            loadNextPage(aestheticGallery, infScroll, () => {
-              if (!loadedLast) {
-                selectedIndex += 1
-              }
-
+            infScroll.loadNextPage().then(() => {
+              selectedIndex += 1
               openBlock()
             })
           }
@@ -246,4 +222,4 @@ $(() => {
   }
 })
 
-export {AestheticBlock, CariModal, CariSpinner}
+export {AestheticBlock, CariModal}
