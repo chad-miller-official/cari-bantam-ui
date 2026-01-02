@@ -1,7 +1,6 @@
 import {AestheticBlock} from "./components/aesthetic-block";
 import {ArenaApiResponse, BlockClass, GalleryContent} from "./types";
 import InfiniteScroll from "infinite-scroll";
-import CariSpinner from "../components/spinner";
 import {CariModal} from "../components/modal";
 
 declare const mediaSourceUrl: string
@@ -114,7 +113,7 @@ function openBlock() {
 function buildBlock(block: GalleryContent, idx: number): JQuery<HTMLElement> {
   const blockElement = $('<div>')
   .addClass('aesthetic-gallery-block')
-  .data('index', (idx + (20 * pagesLoaded)))
+  .data('index', (idx + (MAX_PAGE_SIZE * pagesLoaded)))
   .on('click', function () {
     selectedIndex = $(this).data('index')
     openBlock()
@@ -140,32 +139,15 @@ function buildBlock(block: GalleryContent, idx: number): JQuery<HTMLElement> {
   return blockElement.append(content)
 }
 
-function loadNextPage(container: JQuery<HTMLElement>, infScroll: InfiniteScroll, loadedCallback?: () => void) {
-  let cariSpinner = container.children('cari-spinner')
-
-  if (!cariSpinner.length) {
-    cariSpinner = $(new CariSpinner())
-  }
-
-  container.append(cariSpinner)
-  const loadNextPage = infScroll.loadNextPage()
-
-  if (loadNextPage) {
-    loadNextPage.then(() => {
-      cariSpinner.remove()
-
-      if (loadedCallback) {
-        loadedCallback()
-      }
-    })
-  }
-}
-
 function handleArenaApiResponse(res: ArenaApiResponse) {
   const resToShow = res.contents.filter(block => block.class !== BlockClass.Channel)
   $('#aestheticGallery').append(...resToShow.map((block, idx) => buildBlock(block, idx)))
   blocks.push(...resToShow)
   pagesLoaded += 1
+
+  if (pagesLoaded === totalPages) {
+    InfiniteScroll.data('#aestheticGallery').loadNextPage()
+  }
 }
 
 $(() => {
@@ -187,35 +169,22 @@ $(() => {
       },
       responseBody: 'json',
       history: false,
+      button: '.aesthetic-gallery-show-more-button',
       scrollThreshold: false,
+      status: '.spinner',
     })
 
     $.get(mediaSourceUrl, data, (res: ArenaApiResponse) => {
       totalPages = Math.ceil(res.length / MAX_PAGE_SIZE)
       handleArenaApiResponse(res)
+
+      if (totalPages <= 1) {
+        $('.aesthetic-gallery-show-more-button').remove()
+      }
     })
 
-    infScroll.on('load', handleArenaApiResponse)
+    infScroll.on('load', (res: ArenaApiResponse) => handleArenaApiResponse(res))
     infScroll.on('last', () => loadedLast = true)
-
-    aestheticGallery.on('scroll', function (event) {
-      const trueWidth = this.scrollWidth - $(this).parent().width()
-      let maskImage = 'initial'
-
-      if (event.target.scrollLeft === 0) {
-        maskImage = 'linear-gradient(to right, black 0%, black 90%, transparent 99%)'
-      } else if (event.target.scrollLeft > 0 && (!loadedLast || event.target.scrollLeft < trueWidth)) {
-        maskImage = 'linear-gradient(to right, transparent 1%, black 10%, black 90%, transparent 99%)'
-      } else if (event.target.scrollLeft === trueWidth) {
-        maskImage = 'linear-gradient(to right, transparent 1%, black 10%, black 100%)'
-      }
-
-      $('#aestheticGalleryContainer').css('mask-image', maskImage)
-
-      if (!loadedLast && event.target.scrollLeft >= 0.9 * trueWidth) {
-        loadNextPage($(this), infScroll)
-      }
-    })
 
     const originalWindowOnKeyUp = window.onkeyup
     const modal = $('cari-modal')
@@ -233,13 +202,11 @@ $(() => {
             selectedIndex += 1
             openBlock()
           } else if (!loadedLast) {
-            media.empty().append($(new CariSpinner()))
+            const spinner = $('<div>').addClass('.spinner')
+            media.empty().append(spinner)
 
-            loadNextPage($('#aestheticGallery'), infScroll, () => {
-              if (!loadedLast) {
-                selectedIndex += 1
-              }
-
+            infScroll.loadNextPage().then(() => {
+              selectedIndex += 1
               openBlock()
             })
           }
