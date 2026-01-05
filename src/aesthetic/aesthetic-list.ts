@@ -44,6 +44,8 @@ const asc = !INITIAL_PARAMS.has('asc') || INITIAL_PARAMS.get('asc') === 'true'
 
 let sortOrderLabel = SORT_ORDER_LABELS.get(INITIAL_PARAMS.get('sort') || SortField.Name)
 
+let showFilters = false
+
 function formatQueryParams(query: any): string {
   return stringify(query, {
     allowDots: true,
@@ -84,13 +86,13 @@ function validateAndBuildQueryParams() {
     errorMessageElem.text('')
     errorMessageElem.css('display', 'none')
 
-    const eraBound = parseInt(eraFilters.children(`#${eraField}EraBound`).first().val().toString()) || 0 as EraBound
-    const eraSpecifier0 = parseInt(eraFilters.children(`#${eraField}EraSpecifier0`).first().val().toString()) || 0
-    const eraYear0 = parseInt(eraFilters.children(`#${eraField}EraYear0`).first().val().toString()) || 0
+    const eraBound = parseInt(eraFilters.find(`#${eraField}EraBound`).first().val().toString()) || 0 as EraBound
+    const eraSpecifier0 = parseInt(eraFilters.find(`#${eraField}EraSpecifier0`).first().val().toString()) || 0
+    const eraYear0 = parseInt(eraFilters.find(`#${eraField}EraYear0`).first().val().toString()) || 0
 
-    const endRange = eraFilters.children('.between-end-range').first()
-    const eraSpecifier1 = parseInt(endRange.children(`#${eraField}EraSpecifier1`).first().val().toString()) || 0
-    const eraYear1 = parseInt(endRange.children(`#${eraField}EraYear1`).first().val().toString()) || 0
+    const endRange = eraFilters.find('.between-end-range').first()
+    const eraSpecifier1 = parseInt(endRange.find(`#${eraField}EraSpecifier1`).first().val().toString()) || 0
+    const eraYear1 = parseInt(endRange.find(`#${eraField}EraYear1`).first().val().toString()) || 0
 
     if (eraBound && eraYear0) {
       const eraParams = [{
@@ -289,8 +291,8 @@ function setupEraFilter(eraField: EraField) {
     })
   })
 
-  eraFilter.children(`#${eraField}EraBound`).first().on('change', event => {
-    const betweenEndRangeContainer = eraFilter.children('.between-end-range').first()
+  eraFilter.find(`#${eraField}EraBound`).first().on('change', event => {
+    const betweenEndRangeContainer = eraFilter.find('.between-end-range').first()
     handleEraBoundChange(event, betweenEndRangeContainer)
   })
 }
@@ -334,6 +336,27 @@ $(() => {
   })
 
   infScroll.on('load', handleApiResponse)
+
+  const toggleFilters = $('#toggleFilters')
+
+  toggleFilters.on('click', () => {
+    showFilters = !showFilters
+    $('#filtersContainer').toggle('fast')
+
+    const topRadius = showFilters ? '0' : ''
+    toggleFilters.css('border-top-left-radius', topRadius)
+    toggleFilters.css('border-top-right-radius', topRadius)
+
+    const icon = toggleFilters.children('i')
+
+    if (showFilters) {
+      icon.removeClass('fa-angles-down')
+      icon.addClass('fa-angles-up')
+    } else {
+      icon.removeClass('fa-angles-up')
+      icon.addClass('fa-angles-down')
+    }
+  })
 })
 
 export {AestheticBlock, CariSpinner}
