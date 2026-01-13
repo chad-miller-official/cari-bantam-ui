@@ -151,6 +151,12 @@ function handleArenaApiResponse(res: ArenaApiResponse) {
 }
 
 $(() => {
+  $('.tooltip').tooltipster({
+    maxWidth: 400,
+    theme: 'tooltipster-borderless',
+    trigger: 'click',
+  })
+
   const aestheticGallery = $('#aestheticGallery')
 
   if (aestheticGallery.length) {
