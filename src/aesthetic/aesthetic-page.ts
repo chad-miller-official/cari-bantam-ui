@@ -1,5 +1,6 @@
 import {AestheticBlock} from "./components/aesthetic-block";
 import {ArenaApiResponse, BlockClass, GalleryContent} from "./types";
+import {ArticlePreview} from "../articles/components/article-preview";
 import InfiniteScroll from "infinite-scroll";
 import {CariModal} from "../components/modal";
 
@@ -228,4 +229,4 @@ $(() => {
   }
 })
 
-export {AestheticBlock, CariModal}
+export {AestheticBlock, ArticlePreview, CariModal}
