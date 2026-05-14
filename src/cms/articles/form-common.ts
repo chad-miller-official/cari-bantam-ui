@@ -12,6 +12,7 @@ declare const originalAuthor: string
 declare const originalAuthorName: string
 declare const originalPublished: string
 declare const originalPublishedString: string
+declare const selectedAesthetics: string[]
 
 export const FILE_MAX_SIZE = '10MB'
 
@@ -414,12 +415,16 @@ function handleSubmit(event, data, form: JQuery<HTMLFormElement>, setupObject: A
   }
 }
 
+function getSpinner(): FullscreenSpinner {
+  return $('fullscreen-spinner').get(0) as FullscreenSpinner
+}
+
 export function showSpinner() {
-  ($('fullscreen-spinner').get(0) as FullscreenSpinner).showModal()
+  getSpinner().showModal()
 }
 
 export function closeSpinner() {
-  ($('fullscreen-spinner').get(0) as FullscreenSpinner).close()
+  getSpinner().close()
 }
 
 export function setup(setupObject: ArticleSetupObject) {
@@ -430,6 +435,20 @@ export function setup(setupObject: ArticleSetupObject) {
   $('#publisherOverride').on('change', {setupObject: setupObject}, handlePublisherOverrideChange)
   $('#published').on('change', {setupObject: setupObject}, handlePublishedChange)
   $('#author').on('change', {setupObject: setupObject}, handleAuthorChange)
+
+  const aesthetics = $('#aesthetics')
+
+  aesthetics.select2({
+    placeholder: 'Select one or more aesthetics...',
+    width: '100%',
+  })
+
+  aesthetics.val(selectedAesthetics)
+  aesthetics.trigger('change')
+
+  aesthetics.on('select2:select select2:unselect', function() {
+    setupObject.triggerChangeDetected()
+  })
 
   $('#authorOverride').on('change', function () {
     setupObject.triggerChangeDetected()
