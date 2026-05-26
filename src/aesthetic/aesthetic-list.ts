@@ -207,7 +207,7 @@ function createAestheticBlock(aesthetic: Aesthetic) {
     aestheticBlock.endYear = aesthetic.endYear
   }
 
-  if (aesthetic.isPreview) {
+  if (aesthetic.preview) {
     aestheticBlock.preview = true
     aestheticBlock.jobExecution = jobExecution
 
