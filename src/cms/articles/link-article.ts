@@ -1,4 +1,3 @@
-import {ArticlePreview} from "../../articles/components/article-preview";
 import {FullscreenSpinner} from "../../components/spinner";
 import {ArticleSetupObject, ArticleType, setup} from "./form-common";
 
@@ -53,4 +52,4 @@ $(() => {
   })
 })
 
-export {ArticlePreview, FullscreenSpinner}
+export {FullscreenSpinner}
