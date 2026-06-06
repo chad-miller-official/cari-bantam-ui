@@ -7,7 +7,6 @@ import {
   setup,
   showSpinner,
 } from "./form-common";
-import {FullscreenSpinner} from "../../components/spinner";
 import {RedirectResponse} from "../types";
 import {CariModal} from "../../components/modal";
 import {ArticlePreview} from "../../articles/components/article-preview";
@@ -203,5 +202,3 @@ $(() => {
 
   $('#previewButton').on('click', handlePreviewButtonClick)
 })
-
-export {CariModal, FullscreenSpinner}

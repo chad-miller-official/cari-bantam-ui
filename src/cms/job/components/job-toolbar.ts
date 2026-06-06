@@ -250,5 +250,3 @@ export class JobToolbar extends LitElement {
       </a>`
   }
 }
-
-export {CariProgressBar}

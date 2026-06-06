@@ -1,7 +1,6 @@
 import {stringify} from 'qs'
 
 import {Aesthetic} from './types'
-import CariSpinner from '../components/spinner'
 import {FormValidationError} from '../exception/exception'
 import {Page} from '../types'
 import InfiniteScroll from "infinite-scroll";
@@ -358,5 +357,3 @@ $(() => {
     }
   })
 })
-
-export {CariSpinner}

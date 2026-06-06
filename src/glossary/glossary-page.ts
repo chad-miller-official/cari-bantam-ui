@@ -229,5 +229,3 @@ export class GlossaryTermsList extends LitElement {
       </article>`
   }
 }
-
-export {CariSpinner}

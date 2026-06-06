@@ -40,5 +40,3 @@ $(() => {
     $(this).on('click', () => deleteArticle($(this).parent()))
   })
 })
-
-export {FullscreenSpinner}

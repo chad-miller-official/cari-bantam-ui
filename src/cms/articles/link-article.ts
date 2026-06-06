@@ -1,4 +1,3 @@
-import {FullscreenSpinner} from "../../components/spinner";
 import {ArticleSetupObject, ArticleType, setup} from "./form-common";
 
 class LinkArticleSetupObject extends ArticleSetupObject {
@@ -51,5 +50,3 @@ $(() => {
     setupObject.toggleSubmitButton()
   })
 })
-
-export {FullscreenSpinner}
