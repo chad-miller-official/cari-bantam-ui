@@ -57,6 +57,6 @@ export type Aesthetic = {
   endYear: string,
   decadeYear: number,
   displayImageUrl: string,
-  isPreview?: boolean,
+  preview?: boolean,
   importStatusLabel?: string,
 }
