@@ -3,8 +3,7 @@ import axios, {AxiosResponse} from 'axios'
 import CariSpinner from '../components/spinner'
 import {GlossaryTerm} from './types'
 import {css, html, LitElement} from 'lit'
-
-import {AestheticBlock} from "../aesthetic/components/aesthetic-block"
+import {AestheticBlock} from "../aesthetic/components/aesthetic-block";
 
 const selectedColor = css`#e7e7e7`
 const letterGroups = ['A-C', 'D-F', 'G-I', 'J-L', 'M-O', 'P-S', 'T-V', 'W-Z']
@@ -229,9 +228,4 @@ export class GlossaryTermsList extends LitElement {
         <slot name="glossaryTerms"></slot>
       </article>`
   }
-}
-
-export {
-  AestheticBlock,
-  CariSpinner,
 }

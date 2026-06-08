@@ -1,12 +1,11 @@
 import {stringify} from 'qs'
 
 import {Aesthetic} from './types'
-import CariSpinner from '../components/spinner'
 import {FormValidationError} from '../exception/exception'
 import {Page} from '../types'
-import {AestheticBlock} from "./components/aesthetic-block"
 import InfiniteScroll from "infinite-scroll";
 import ChangeEvent = JQuery.ChangeEvent;
+import {AestheticBlock} from "./components/aesthetic-block";
 
 declare const apiEndpoint: string
 declare const importStatusMap: object
@@ -359,5 +358,3 @@ $(() => {
     }
   })
 })
-
-export {AestheticBlock, CariSpinner}

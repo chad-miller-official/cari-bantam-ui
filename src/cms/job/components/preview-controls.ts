@@ -5,7 +5,6 @@ import {JobDataRequestResponse, JobResponse} from '../types'
 import {Csrf} from '../../../types'
 import {Client, IMessage} from '@stomp/stompjs'
 import {waitFor} from '../../../util'
-import CariProgressBar from '../../../components/progress-bar'
 
 declare const _csrf: Csrf
 
@@ -151,5 +150,3 @@ export class PreviewControls extends LitElement {
       </div>`
   }
 }
-
-export {CariProgressBar}

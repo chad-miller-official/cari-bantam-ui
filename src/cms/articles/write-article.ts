@@ -1,4 +1,3 @@
-import {ArticlePreview} from "../../articles/components/article-preview"
 import {ArticleReader} from "../../articles/components/article-reader";
 import {
   ArticleSetupObject,
@@ -8,9 +7,9 @@ import {
   setup,
   showSpinner,
 } from "./form-common";
-import {FullscreenSpinner} from "../../components/spinner";
 import {RedirectResponse} from "../types";
 import {CariModal} from "../../components/modal";
+import {ArticlePreview} from "../../articles/components/article-preview";
 
 // Avoid having to import tinymce within this file
 declare const tinymce: {
@@ -203,5 +202,3 @@ $(() => {
 
   $('#previewButton').on('click', handlePreviewButtonClick)
 })
-
-export {ArticlePreview, ArticleReader, CariModal, FullscreenSpinner}
