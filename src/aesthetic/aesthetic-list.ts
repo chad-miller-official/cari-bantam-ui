@@ -9,6 +9,7 @@ import InfiniteScroll from "infinite-scroll";
 import ChangeEvent = JQuery.ChangeEvent;
 
 declare const apiEndpoint: string
+declare const importStatusMap: object
 declare const jobExecution: number
 declare const totalPages: number
 
@@ -211,8 +212,8 @@ function createAestheticBlock(aesthetic: Aesthetic) {
     aestheticBlock.preview = true
     aestheticBlock.jobExecution = jobExecution
 
-    if (aesthetic.importStatusLabel) {
-      aestheticBlock.classList.add(`${aesthetic.importStatusLabel.toLowerCase()}-object`, 'aesthetic-job-object')
+    if (aesthetic.importStatus) {
+      aestheticBlock.classList.add(`${importStatusMap[aesthetic.importStatus.toString()].toLowerCase()}-object`, 'aesthetic-job-object')
     }
   }
 
