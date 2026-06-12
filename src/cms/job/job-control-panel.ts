@@ -1,4 +1,3 @@
-import {JobHistoryEntry} from "./components/job-history";
 import axios, {AxiosError, AxiosResponse} from "axios";
 import {JobDataRequestResponse, JobHistoryResponse, JobLog, JobResponse} from "./types";
 import {Csrf} from "../../types";
@@ -7,6 +6,14 @@ import CariProgressBar from "../../components/progress-bar";
 import {waitFor} from "../../util";
 
 declare const _csrf: Csrf
+declare const jobEndpoint: string
+
+declare let lastJobExecution: number
+declare let lastJobExecutionLog: number
+declare let lastJobExecutionStatus: number
+
+let selectedJobExecution = lastJobExecution
+let showHiddenLogs = false
 
 let stompClient = new Client({
   brokerURL: '/cari-websocket',
@@ -79,9 +86,10 @@ function invokeJob() {
     if (error) {
       alert(error.message)
     } else {
-      const jobExecution = jobResponse.jobExecution
+      const jobExecution = jobResponse.jobExecution;
 
-      percentComplete = 0
+      ($('#jobProgressBar').get(0) as CariProgressBar).percentComplete = 0
+
       lastJobExecution = jobExecution
       lastJobExecutionLog = 0
       lastJobExecutionStatus = 1
@@ -90,7 +98,8 @@ function invokeJob() {
       appendJobExecution(jobExecution, jobResponse.started)
       appendLogs([], true)
 
-      outputFileUrl = null
+      $('#outputFileUrl').prop('href', '#').prop('disabled', 'disabled')
+
       stompClient.activate()
     }
   })
@@ -100,11 +109,13 @@ function invokeJob() {
 }
 
 function getPreviousJobs() {
-  return $('#jobsHistory > ol').children() as JQuery<JobHistoryEntry>
+  return $('#jobsHistory > ol').children() as JQuery<HTMLLIElement>
 }
 
 function clearSelectedJob() {
-  getPreviousJobs().each((_, child) => child.selected = false)
+  getPreviousJobs().each((_, child) => {
+    $(child).removeProp('selected')
+  })
 }
 
 function appendLogs(logs: JobLog[], reset: boolean) {
@@ -128,20 +139,20 @@ function appendLogs(logs: JobLog[], reset: boolean) {
   }
 }
 
-function displayJobExecution(jobHistoryEntry: JobHistoryEntry) {
-  if (jobHistoryEntry.selected) {
+function displayJobExecution(jobHistoryEntry: JQuery<HTMLLIElement>) {
+  if (jobHistoryEntry.prop('selected')) {
     return
   }
 
   clearSelectedJob()
-  jobHistoryEntry.selected = true
+  jobHistoryEntry.prop('selected', true)
 
-  const jobExecution = jobHistoryEntry.jobExecution
+  const jobExecution = jobHistoryEntry.data('jobExecution')
 
   axios.get<JobHistoryResponse>('/api/jobs/get-job-execution-data', {params: {jobExecution}})
   .then((res: AxiosResponse<JobHistoryResponse>) => {
     selectedJobExecution = jobExecution
-    outputFileUrl = res.data.outputFileUrl
+    $('#outputFileUrl').prop('href', res.data.outputFileUrl).removeProp('disabled')
     appendLogs(res.data.logs, true)
   })
 }
@@ -149,19 +160,16 @@ function displayJobExecution(jobHistoryEntry: JobHistoryEntry) {
 function appendJobExecution(jobExecution: number, started: string) {
   clearSelectedJob()
 
-  const jobStartedSlot = $('<span>')
-  jobStartedSlot.prop('slot', 'jobStarted')
-  jobStartedSlot.text(new Date(started).toUTCString().split(' ').slice(1, 5).join(' '))
+  const jobHistoryEntryTemplate = $('#jobHistoryEntry').get(0) as HTMLTemplateElement
+  const jobHistoryEntry = $(document.importNode(jobHistoryEntryTemplate.content, true).firstElementChild as HTMLLIElement)
 
-  const jobHistoryEntry = new JobHistoryEntry()
-  jobHistoryEntry.slot = 'previousJobs'
-  jobHistoryEntry.selected = true
-  jobHistoryEntry.jobExecution = jobExecution
-  jobHistoryEntry.appendChild(jobStartedSlot.get(0))
-  jobHistoryEntry.addEventListener('click', () => displayJobExecution(jobHistoryEntry))
+  jobHistoryEntry.prop('selected', true)
+  jobHistoryEntry.data('jobExecution', jobExecution)
+  jobHistoryEntry.children('.job-execution').text(jobExecution)
+  jobHistoryEntry.children('.job-started').text(new Date(started).toUTCString().split(' ').slice(1, 5).join(' '))
+  jobHistoryEntry.on('click', () => displayJobExecution(jobHistoryEntry))
 
-  const jobHistory = $('#jobsHistory')
-  jobHistory.prepend(jobHistoryEntry)
+  $('#jobsHistory').prepend(jobHistoryEntry)
 }
 
 function updateJobExecutionStatus(status: string) {
@@ -195,13 +203,11 @@ $(() => {
   $('#runJob').on('click', invokeJob)
   $('#showDebugLogs').on('click', toggleDebugLogs)
 
-  selectedJobExecution = lastJobExecution
-
   if (lastJobExecutionStatus === 1) {
     stompClient.activate()
   }
 
   $('#jobHistory > ol').children().each((_, child) => {
-    child.onclick = () => displayJobExecution(child as JobHistoryEntry)
+    child.onclick = () => displayJobExecution($(child as HTMLLIElement))
   })
 })
