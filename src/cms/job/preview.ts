@@ -20,9 +20,10 @@ const stompClient = new Client({
     stompClient.subscribe('/topic/job-data', (data: IMessage) => {
       const response = JSON.parse(data.body) as JobDataRequestResponse
 
-      const previewControlsIndicator = $('#previewControlsIndicator');
+      const previewControlsIndicator = $('#previewControlsIndicator')
+      const progressBar = previewControlsIndicator.find('cari-progress-bar').get(0) as CariProgressBar
 
-      (previewControlsIndicator.find('cari-progress-bar').get(0) as CariProgressBar).percentComplete = response.percentComplete
+      progressBar.percentComplete = response.percentComplete
 
       if (response.last) {
         judgmentJobExecutionStatus = response.jobExecutionStatus
@@ -40,9 +41,9 @@ const stompClient = new Client({
     })
 
     listen()
-    .then(() => stompClient.deactivate())
-    .then(() => waitFor(3000))
-    .then(() => window.location.href = redirectTo)
+      .then(() => stompClient.deactivate())
+      .then(() => waitFor(3000))
+      .then(() => window.location.href = redirectTo)
   },
   onWebSocketError: error => {
     // XXX
@@ -56,7 +57,7 @@ const stompClient = new Client({
 })
 
 async function listen() {
-  while (percentComplete < 1) {
+  while (judgmentJobExecutionStatus === 1) {
     stompClient.publish({
       destination: '/app/pull-job-data',
       body: JSON.stringify({
@@ -81,25 +82,25 @@ function sendJudgment(verb: string) {
   }
 
   axios.post<JobResponse>(`/api/jobs/${verb.toLowerCase()}-job`, {jobExecution: jobExecution}, axiosConfig)
-  .then((res: AxiosResponse<JobResponse>) => {
-    const error = res.data.error
+    .then((res: AxiosResponse<JobResponse>) => {
+      const error = res.data.error
 
-    if (error) {
-      alert(error.message)
-    } else {
-      judgmentJobExecution = res.data.jobExecution
+      if (error) {
+        alert(error.message)
+      } else {
+        judgmentJobExecution = res.data.jobExecution
 
-      const progressBar = new CariProgressBar()
-      progressBar.percentComplete = 0
+        const progressBar = new CariProgressBar()
+        progressBar.percentComplete = 0
 
-      $('#previewControlsIndicator').append($('<span>').text('Working...'), progressBar)
+        $('#previewControlsIndicator').append($('<span>').text('Working...'), progressBar)
 
-      stompClient.activate()
-    }
-  })
-  .catch((err: AxiosError) => {
-    alert(`Job failed to start. Reason: ${err.message}`)
-  })
+        stompClient.activate()
+      }
+    })
+    .catch((err: AxiosError) => {
+      alert(`Job failed to start. Reason: ${err.message}`)
+    })
 }
 
 $(() => {

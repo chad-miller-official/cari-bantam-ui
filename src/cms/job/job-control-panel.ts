@@ -100,6 +100,11 @@ function invokeJob() {
         _lastJobExecutionLog = 0
         _lastJobExecutionStatus = 1
 
+        $('#previewChanges')
+          .attr('hidden', 'hidden')
+          .children('a')
+            .attr('href', `/cms/job/preview?job=${_lastJobExecution}`)
+
         $('#runJob').attr('disabled', 'disabled')
 
         const progressBar = new CariProgressBar()
@@ -193,7 +198,9 @@ $(() => {
         if (response.last) {
           _lastJobExecutionStatus = response.jobExecutionStatus
 
-          if (response.jobExecutionStatus !== 5) {
+          if (response.jobExecutionStatus === 5) {
+            $('#previewChanges').removeAttr('hidden')
+          } else {
             $('#runJob').removeAttr('disabled')
           }
 
