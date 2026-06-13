@@ -12,7 +12,6 @@ declare const redirectTo: string
 
 let judgmentJobExecution: number
 let judgmentJobExecutionStatus = 1
-let percentComplete = 0
 
 const stompClient = new Client({
   brokerURL: '/cari-websocket',
