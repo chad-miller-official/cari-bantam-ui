@@ -3,7 +3,6 @@ import {JobDataRequestResponse, JobResponse} from "./types";
 import {waitFor} from "../../util";
 import {Csrf} from "../../types";
 import {Client, IMessage} from "@stomp/stompjs";
-import CariProgressBar from "../../components/progress-bar";
 
 declare const _csrf: Csrf
 
@@ -20,9 +19,9 @@ const stompClient = new Client({
       const response = JSON.parse(data.body) as JobDataRequestResponse
 
       const previewControlsIndicator = $('#previewControlsIndicator')
-      const progressBar = previewControlsIndicator.find('cari-progress-bar').get(0) as CariProgressBar
+      const progressBar = previewControlsIndicator.find('progress').get(0) as HTMLProgressElement
 
-      progressBar.percentComplete = response.percentComplete
+      progressBar.value = Math.round(response.percentComplete * 100)
 
       if (response.last) {
         judgmentJobExecutionStatus = response.jobExecutionStatus
@@ -89,10 +88,14 @@ function sendJudgment(verb: string) {
       } else {
         judgmentJobExecution = res.data.jobExecution
 
-        const progressBar = new CariProgressBar()
-        progressBar.percentComplete = 0
-
-        $('#previewControlsIndicator').append($('<span>').text('Working...'), progressBar)
+        $('#previewControlsIndicator')
+          .append(
+            $('<span>')
+              .text('Working...'),
+            $('<progress>')
+              .attr('max', '100')
+              .attr('value', '0')
+          )
 
         stompClient.activate()
       }

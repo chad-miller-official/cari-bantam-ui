@@ -2,7 +2,6 @@ import axios, {AxiosError, AxiosResponse} from "axios";
 import {JobDataRequestResponse, JobHistoryResponse, JobLog, JobResponse} from "./types";
 import {Csrf} from "../../types";
 import {Client, IMessage} from "@stomp/stompjs";
-import CariProgressBar from "../../components/progress-bar";
 import {waitFor} from "../../util";
 
 declare const _csrf: Csrf
@@ -107,17 +106,21 @@ function invokeJob() {
 
         $('#runJob').attr('disabled', 'disabled')
 
-        const progressBar = new CariProgressBar()
-        progressBar.percentComplete = 0
+        const progressBar = $('<progress>')
+          .attr('id', 'jobProgressBar')
+          .attr('max', '100')
+          .attr('value', '0')
 
-        $('#jobProgressBar').append(progressBar)
+        $('#jobProgressBarContainer').append(progressBar)
 
         selectedJobExecution = jobExecution
 
         appendJobExecution(jobExecution, jobResponse.started)
         appendLogs([], true)
 
-        $('#outputFileUrl').attr('href', '#').attr('disabled', 'disabled')
+        $('#outputFileUrl')
+          .attr('href', '#')
+          .attr('disabled', 'disabled')
 
         stompClient.activate()
       }
@@ -202,7 +205,7 @@ $(() => {
     onConnect: () => {
       stompClient.subscribe('/topic/job-data', (data: IMessage) => {
         const response = JSON.parse(data.body) as JobDataRequestResponse
-        const progressBar = $('#jobProgressBar')
+        const container = $('#jobProgressBarContainer')
 
         if (response.last) {
           _lastJobExecutionStatus = response.jobExecutionStatus
@@ -213,7 +216,7 @@ $(() => {
             $('#runJob').removeAttr('disabled')
           }
 
-          progressBar.empty()
+          container.empty()
           getPreviousJobs().find('.job-status').first().text(response.status)
 
           const outputFileUrl = response.outputFileUrl
@@ -224,7 +227,8 @@ $(() => {
               .removeAttr('disabled')
           }
         } else {
-          (progressBar.children('cari-progress-bar').get(0) as CariProgressBar).percentComplete = response.percentComplete
+          const newValue = Math.round(response.percentComplete * 100)
+          $('#jobProgressBar').attr('value', newValue)
         }
 
         if (response.logs.length > 0) {
