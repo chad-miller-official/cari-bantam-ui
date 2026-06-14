@@ -19,12 +19,7 @@ export default class CariProgressBar extends LitElement {
   value: number = 0
 
   render() {
-    let percentComplete = this.value
-
-    if (percentComplete % 1) {
-      // Assume this.value is a decimal between 0.0 and 1.0
-      percentComplete = Math.round(percentComplete * 100)
-    }
+    const percentComplete = Math.min(100, Math.round(this.value * 100))
 
     return html`
       <div>
