@@ -103,7 +103,7 @@ function invokeJob() {
         $('#previewChanges')
           .attr('hidden', 'hidden')
           .children('a')
-            .attr('href', `/cms/job/preview?job=${_lastJobExecution}`)
+          .attr('href', `/cms/job/preview?job=${_lastJobExecution}`)
 
         $('#runJob').attr('disabled', 'disabled')
 
@@ -117,7 +117,7 @@ function invokeJob() {
         appendJobExecution(jobExecution, jobResponse.started)
         appendLogs([], true)
 
-        $('#outputFileUrl').prop('href', '#').prop('disabled', 'disabled')
+        $('#outputFileUrl').attr('href', '#').attr('disabled', 'disabled')
 
         stompClient.activate()
       }
@@ -148,7 +148,16 @@ function displayJobExecution(jobHistoryEntry: JQuery<HTMLLIElement>) {
   axios.get<JobHistoryResponse>('/api/jobs/get-job-execution-data', {params: {jobExecution}})
     .then((res: AxiosResponse<JobHistoryResponse>) => {
       selectedJobExecution = jobExecution
-      $('#outputFileUrl').prop('href', res.data.outputFileUrl).removeProp('disabled')
+
+      const outputFileUrl = res.data.outputFileUrl
+      const $outputFileUrl = $('#outputFileUrl').attr('href', outputFileUrl || '#')
+
+      if (outputFileUrl) {
+        $outputFileUrl.removeAttr('disabled')
+      } else {
+        $outputFileUrl.attr('disabled', 'disabled')
+      }
+
       appendLogs(res.data.logs, true)
     })
 }
@@ -206,7 +215,14 @@ $(() => {
 
           progressBar.empty()
           getPreviousJobs().find('.job-status').first().text(response.status)
-          $('#outputFileUrl').prop('href', response.outputFileUrl)
+
+          const outputFileUrl = response.outputFileUrl
+
+          if (outputFileUrl) {
+            $('#outputFileUrl')
+              .attr('href', outputFileUrl)
+              .removeAttr('disabled')
+          }
         } else {
           (progressBar.children('cari-progress-bar').get(0) as CariProgressBar).percentComplete = response.percentComplete
         }
