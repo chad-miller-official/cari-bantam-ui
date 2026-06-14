@@ -3,6 +3,7 @@ import {JobDataRequestResponse, JobHistoryResponse, JobLog, JobResponse} from ".
 import {Csrf} from "../../types";
 import {Client, IMessage} from "@stomp/stompjs";
 import {waitFor} from "../../util";
+import CariProgressBar from "../../components/progress-bar";
 
 declare const _csrf: Csrf
 declare const jobEndpoint: string
@@ -106,12 +107,10 @@ function invokeJob() {
 
         $('#runJob').attr('disabled', 'disabled')
 
-        const progressBar = $('<progress>')
-          .attr('id', 'jobProgressBar')
-          .attr('max', '100')
-          .attr('value', '0')
+        const progressBar = new CariProgressBar()
+        progressBar.id = 'jobProgressBar'
 
-        $('#jobProgressBarContainer').append(progressBar)
+        $('#jobProgressBar').append(progressBar)
 
         selectedJobExecution = jobExecution
 
@@ -205,7 +204,9 @@ $(() => {
     onConnect: () => {
       stompClient.subscribe('/topic/job-data', (data: IMessage) => {
         const response = JSON.parse(data.body) as JobDataRequestResponse
-        const container = $('#jobProgressBarContainer')
+        const progressBarContainer = $('#jobProgressBar');
+
+        (progressBarContainer.children('cari-progress-bar').get(0) as CariProgressBar).value = response.percentComplete
 
         if (response.last) {
           _lastJobExecutionStatus = response.jobExecutionStatus
@@ -216,7 +217,7 @@ $(() => {
             $('#runJob').removeAttr('disabled')
           }
 
-          container.empty()
+          progressBarContainer.empty()
           getPreviousJobs().find('.job-status').first().text(response.status)
 
           const outputFileUrl = response.outputFileUrl
@@ -226,9 +227,6 @@ $(() => {
               .attr('href', outputFileUrl)
               .removeAttr('disabled')
           }
-        } else {
-          const newValue = Math.round(response.percentComplete * 100)
-          $('#jobProgressBar').attr('value', newValue)
         }
 
         if (response.logs.length > 0) {
