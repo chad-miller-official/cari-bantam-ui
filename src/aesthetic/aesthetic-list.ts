@@ -69,7 +69,7 @@ function validateAndBuildQueryParams() {
   const keywordVal = keyword.val().toString()
 
   if (keywordVal) {
-    params['keyword'] = encodeURIComponent(keywordVal)
+    params['keyword'] = keywordVal
   }
 
   const decadeValue = decade.val().toString()
@@ -302,8 +302,6 @@ $(() => {
 
   filters.on('submit', updateFilters)
   filters.on('reset', resetFilters)
-
-  $('#keyword').val(INITIAL_PARAMS.get('keyword'))
 
   setupEraFilter(EraField.Start)
   setupEraFilter(EraField.End)
