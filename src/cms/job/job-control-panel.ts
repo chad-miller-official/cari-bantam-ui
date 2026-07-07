@@ -199,6 +199,20 @@ $(() => {
     child.onclick = () => displayJobExecution($(child as HTMLLIElement))
   })
 
+  $('#jobArguments').on('click', () => {
+    ($('#jobArgumentsModal').get(0) as HTMLDialogElement).showModal()
+  })
+
+  $('#enableArgEditing').on('change', function () {
+    const inputs = $('#jobArgumentsModal .arg-list > input:not([type=checkbox])')
+
+    if ($(this).is(':checked')) {
+      inputs.removeAttr('disabled')
+    } else {
+      inputs.attr('disabled', 'disabled')
+    }
+  })
+
   stompClient = new Client({
     brokerURL: '/cari-websocket',
     onConnect: () => {
