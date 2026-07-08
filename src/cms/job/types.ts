@@ -1,3 +1,13 @@
+export type JobArgument = {
+  key: string,
+  value: string,
+}
+
+export type JobArgumentPutResponse = {
+  updated: number,
+  deleted: number,
+}
+
 export type JobError = {
   code: number,
   message: string,

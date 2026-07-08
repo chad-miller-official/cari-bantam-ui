@@ -1,9 +1,17 @@
 import axios, {AxiosError, AxiosResponse} from "axios";
-import {JobDataRequestResponse, JobHistoryResponse, JobLog, JobResponse} from "./types";
+import {
+  JobArgument,
+  JobArgumentPutResponse,
+  JobDataRequestResponse,
+  JobHistoryResponse,
+  JobLog,
+  JobResponse
+} from "./types";
 import {Csrf} from "../../types";
 import {Client, IMessage} from "@stomp/stompjs";
 import {waitFor} from "../../util";
 import CariProgressBar from "../../components/progress-bar";
+import CariSpinner from "../../components/spinner";
 
 declare const _csrf: Csrf
 declare const jobEndpoint: string
@@ -12,6 +20,8 @@ declare const lastJobExecution: number
 declare const lastJobExecutionLog: number
 declare const lastJobExecutionStatus: number
 
+declare const args: JobArgument[]
+
 let _lastJobExecution: number
 let _lastJobExecutionLog: number
 let _lastJobExecutionStatus: number
@@ -19,6 +29,8 @@ let _lastJobExecutionStatus: number
 let selectedJobExecution: number
 let showHiddenLogs = false
 let stompClient: Client
+
+let _args: JobArgument[]
 
 /* LOG FUNCTIONS */
 
@@ -135,6 +147,42 @@ function clearSelectedJob() {
   })
 }
 
+function deleteArg() {
+  const index = $(this).attr('id').replace(/^delete_/, '')
+
+  $(`#key_${index}`).remove()
+  $(`#value_${index}`).remove()
+  $(this).remove()
+
+  $('#jobArgumentsForm button[type=submit]').removeAttr('disabled')
+}
+
+function cloneArgRow(index: number, key?: string, value?: string) {
+  const keyInputId = `key_${index}`
+  const valueInputId = `value_${index}`
+
+  const argRow = $($('#argRow').prop('content')).clone()
+  const submitButton = $('#jobArgumentsForm button[type=submit]')
+
+  argRow.find('.key')
+    .prop('id', keyInputId)
+    .prop('name', keyInputId)
+    .on('input', () => submitButton.removeAttr('disabled'))
+    .val(key)
+
+  argRow.find('.value')
+    .prop('id', valueInputId)
+    .prop('name', valueInputId)
+    .on('input', () => submitButton.removeAttr('disabled'))
+    .val(value)
+
+  argRow.find('.delete-arg')
+    .prop('id', `delete_${index}`)
+    .on('click', deleteArg)
+
+  return argRow
+}
+
 /* JOB EXECUTION FUNCTIONS */
 
 function displayJobExecution(jobHistoryEntry: JQuery<HTMLLIElement>) {
@@ -189,6 +237,7 @@ $(() => {
   _lastJobExecution = lastJobExecution
   _lastJobExecutionLog = lastJobExecutionLog
   _lastJobExecutionStatus = lastJobExecutionStatus
+  _args = args
 
   selectedJobExecution = lastJobExecution
 
@@ -199,18 +248,71 @@ $(() => {
     child.onclick = () => displayJobExecution($(child as HTMLLIElement))
   })
 
-  $('#jobArguments').on('click', () => {
-    ($('#jobArgumentsModal').get(0) as HTMLDialogElement).showModal()
+  const jobArgumentsModal = $('#jobArgumentsModal')
+  const submitButton = $('#jobArgumentsForm button[type=submit]')
+
+  jobArgumentsModal.on('close', () => {
+    const argList = $('#jobArgumentsForm .arg-list')
+    argList.children('input, button.delete-arg').remove()
+
+    const lastSavedArgs = _args.map((arg, index) => cloneArgRow(index, arg.key, arg.value))
+    argList.children('.inputs-follow').after(lastSavedArgs)
+
+    submitButton.attr('disabled', 'disabled')
   })
 
-  $('#enableArgEditing').on('change', function () {
-    const inputs = $('#jobArgumentsModal .arg-list > input:not([type=checkbox])')
+  $('#jobArguments').on('click', () => {
+    (jobArgumentsModal.get(0) as HTMLDialogElement).showModal()
+  })
 
-    if ($(this).is(':checked')) {
-      inputs.removeAttr('disabled')
-    } else {
-      inputs.attr('disabled', 'disabled')
+  $('#addArg').on('click', function () {
+    const index = parseInt($('#jobArgumentsForm input.key')
+      .last()
+      .attr('id')
+      .replace(/^key_/, '')) + 1
+
+    const argRow = cloneArgRow(index)
+    $(this).before(argRow)
+  })
+
+  $('#jobArgumentsForm input.key, input.value').on('input', () => submitButton.removeAttr('disabled'))
+  $('button.delete-arg').on('click', deleteArg)
+
+  $('#jobArgumentsForm').on('submit', function (event) {
+    event.preventDefault()
+
+    const spinner = $(new CariSpinner())
+    $('#jobArgumentsForm > fieldset').append(spinner)
+
+    const putData = $('#jobArgumentsForm input.key').toArray().reduce((acc, elem: HTMLInputElement) => {
+      const index = elem.id.replace(/^key_/, '')
+      const key = elem.value
+      acc[key] = $(`#value_${index}`).val()
+      return acc
+    }, {})
+
+    const axiosConfig = {
+      withCredentials: true,
+      xsrfHeaderName: _csrf.headerName,
+      headers: {[_csrf.headerName]: _csrf.token},
     }
+
+    axios.put<JobArgumentPutResponse>($(this).attr('action'), putData, axiosConfig)
+      .then(() => {
+        _args = $('#jobArgumentsForm input.key').toArray().map((elem: HTMLInputElement) => {
+          const index = elem.id.replace(/^key_/, '')
+          const key = elem.value
+          const value = $(`#value_${index}`).val()
+          return {key, value: `${value}`}
+        })
+
+        spinner.remove();
+        ($('#jobArgumentsModal').get(0) as HTMLDialogElement).close()
+      })
+      .catch((err: AxiosError) => {
+        // TODO
+        console.log(err)
+      })
   })
 
   stompClient = new Client({
