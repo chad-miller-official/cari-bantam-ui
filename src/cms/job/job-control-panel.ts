@@ -4,7 +4,6 @@ import {
   JobArgumentPutResponse,
   JobDataRequestResponse,
   JobHistoryResponse,
-  JobLog,
   JobResponse
 } from "./types";
 import {Csrf} from "../../types";
@@ -12,6 +11,7 @@ import {Client, IMessage} from "@stomp/stompjs";
 import {waitFor} from "../../util";
 import CariProgressBar from "../../components/progress-bar";
 import CariSpinner from "../../components/spinner";
+import {appendLogs, clearLogs, LogViewer} from "./components/log-viewer";
 
 declare const _csrf: Csrf
 declare const jobEndpoint: string
@@ -27,12 +27,13 @@ let _lastJobExecutionLog: number
 let _lastJobExecutionStatus: number
 
 let selectedJobExecution: number
-let showHiddenLogs = false
 let stompClient: Client
 
 let _args: JobArgument[]
 
 /* LOG FUNCTIONS */
+
+const getLogViewer = () => $('#logs').get(0) as LogViewer
 
 async function pullLogs() {
   while (_lastJobExecutionStatus === 1) {
@@ -46,38 +47,6 @@ async function pullLogs() {
 
     await waitFor(1000)
   }
-}
-
-function appendLogs(logs: JobLog[], reset: boolean) {
-  const newLogs = logs.map(log => $('<code>')
-    .text(log.formattedMessage)
-    .prop('hidden', !showHiddenLogs && log.logLevel === 1)
-    .data('logLevel', log.logLevel)
-    .attr('data-log-level', log.logLevel)
-  )
-
-  const logViewer = $('#logs')
-
-  if (reset) {
-    logViewer.empty()
-  }
-
-  logViewer.prepend(newLogs)
-}
-
-function toggleDebugLogs() {
-  showHiddenLogs = !showHiddenLogs
-
-  $('#logs').children().each((_, child) => {
-    const $child = $(child)
-    const logLevel = parseInt($child.data('logLevel'))
-
-    if (showHiddenLogs) {
-      $child.removeAttr('hidden')
-    } else if (logLevel === 1) {
-      $child.attr('hidden', 'hidden')
-    }
-  })
 }
 
 /* JOB FUNCTIONS */
@@ -127,7 +96,7 @@ function invokeJob() {
         selectedJobExecution = jobExecution
 
         appendJobExecution(jobExecution, jobResponse.started)
-        appendLogs([], true)
+        clearLogs(getLogViewer())
 
         $('#outputFileUrl')
           .attr('href', '#')
@@ -208,7 +177,7 @@ function displayJobExecution(jobHistoryEntry: JQuery<HTMLLIElement>) {
         $outputFileUrl.attr('disabled', 'disabled')
       }
 
-      appendLogs(res.data.logs, true)
+      appendLogs(getLogViewer(), res.data.logs, true)
     })
 }
 
@@ -242,7 +211,6 @@ $(() => {
   selectedJobExecution = lastJobExecution
 
   $('#runJob').on('click', invokeJob)
-  $('#showDebugLogs').on('click', toggleDebugLogs)
 
   $('#jobsHistory > ol').children().each((_, child) => {
     child.onclick = () => displayJobExecution($(child as HTMLLIElement))
@@ -353,7 +321,7 @@ $(() => {
           return
         }
 
-        appendLogs(response.logs, false)
+        appendLogs(getLogViewer(), response.logs, false)
       })
 
       pullLogs().then(() => stompClient.deactivate())

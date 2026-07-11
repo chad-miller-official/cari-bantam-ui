@@ -10,6 +10,10 @@ export default class CariProgressBar extends LitElement {
       gap: 1ch;
     }
     
+    progress {
+      flex-grow: 1;
+    }
+    
     span {
       width: 4ch;
     }
