@@ -118,10 +118,19 @@ function clearSelectedJob() {
 
 function deleteArg() {
   const index = $(this).attr('id').replace(/^delete_/, '')
+  const key = $(`#key_${index}`)
+  const value = $(`#value_${index}`)
 
-  $(`#key_${index}`).remove()
-  $(`#value_${index}`).remove()
-  $(this).remove()
+  if ($('.inputs-follow').nextAll('input').length <= 2) {
+    key.val('')
+    value.val('')
+    $(this).attr('disabled', 'disabled')
+    $('#addArg').attr('disabled', 'disabled')
+  } else {
+    key.remove()
+    value.remove()
+    $(this).remove()
+  }
 
   $('#jobArgumentsForm button[type=submit]').removeAttr('disabled')
 }
@@ -233,7 +242,9 @@ $(() => {
     (jobArgumentsModal.get(0) as HTMLDialogElement).showModal()
   })
 
-  $('#addArg').on('click', function () {
+  const addArg = $('#addArg')
+
+  addArg.on('click', function () {
     const index = parseInt($('#jobArgumentsForm input.key')
       .last()
       .attr('id')
@@ -243,7 +254,12 @@ $(() => {
     $(this).before(argRow)
   })
 
-  $('#jobArgumentsForm input.key, input.value').on('input', () => submitButton.removeAttr('disabled'))
+  $('#jobArgumentsForm input.key, input.value').on('input', () => {
+    submitButton.removeAttr('disabled')
+    $('button.delete-arg').removeAttr('disabled')
+    addArg.removeAttr('disabled')
+  })
+
   $('button.delete-arg').on('click', deleteArg)
 
   $('#jobArgumentsForm').on('submit', function (event) {
