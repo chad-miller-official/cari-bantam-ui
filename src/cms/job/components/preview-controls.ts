@@ -104,13 +104,12 @@ export default class PreviewControls extends LitElement {
         this.stompClient.subscribe('/topic/job-data', (data: IMessage) => {
           const response = JSON.parse(data.body) as JobDataRequestResponse
 
-          const progressBar = this.progressBar.firstElementChild as CariProgressBar
-          progressBar.value = Math.round(response.percentComplete * 100)
+          this.progressBar.value = Math.round(response.percentComplete * 100)
 
           if (response.last) {
             this.jobExecutionStatus = response.jobExecutionStatus
 
-            const finishedMessage = document.createElement('p')
+            const finishedMessage = document.createElement('span')
             let message = 'Import complete. Redirecting to live page...'
 
             if (this.jobExecutionStatus === 2 || this.jobExecutionStatus === 4) {

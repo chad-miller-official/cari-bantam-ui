@@ -27,8 +27,6 @@ export function appendLogs(logViewer: LogViewer, logs: JobLog[], reset: boolean)
   } else {
     logViewer.prepend(...newLogs)
   }
-
-  this.requestUpdate()
 }
 
 @customElement('log-viewer')
