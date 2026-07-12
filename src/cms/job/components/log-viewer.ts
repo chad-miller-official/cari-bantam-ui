@@ -2,31 +2,8 @@ import {customElement, queryAssignedElements, state} from "lit/decorators.js";
 import {css, html, LitElement} from "lit";
 import {JobLog} from "../types";
 
-export function appendLogs(logViewer: LogViewer, logs: JobLog[], reset: boolean) {
-  const newLogs = logs.map(log => {
-    const line = document.createElement('code')
-
-    line.textContent = log.formattedMessage
-    line.dataset['logLevel'] = log.logLevel.toString()
-
-    if (log.logLevel === 1 && !logViewer.showHiddenLogs) {
-      line.setAttribute('hidden', 'hidden')
-    }
-
-    line.setAttribute('data-log-level', log.logLevel.toString())
-
-    return line
-  })
-
-  if (reset) {
-    logViewer.replaceChildren(...newLogs)
-  } else {
-    logViewer.prepend(...newLogs)
-  }
-}
-
 @customElement('log-viewer')
-export class LogViewer extends LitElement {
+export default class LogViewer extends LitElement {
 
   static styles = css`
     article {
@@ -57,6 +34,29 @@ export class LogViewer extends LitElement {
 
   @queryAssignedElements({flatten: true})
   logs: HTMLElement[]
+
+  appendLogs(logs: JobLog[], reset: boolean) {
+    const newLogs = logs.map(log => {
+      const line = document.createElement('code')
+
+      line.textContent = log.formattedMessage
+      line.dataset['logLevel'] = log.logLevel.toString()
+
+      if (log.logLevel === 1 && !this.showHiddenLogs) {
+        line.setAttribute('hidden', 'hidden')
+      }
+
+      line.setAttribute('data-log-level', log.logLevel.toString())
+
+      return line
+    })
+
+    if (reset) {
+      this.replaceChildren(...newLogs)
+    } else {
+      this.prepend(...newLogs)
+    }
+  }
 
   toggleDebugLogs() {
     this.showHiddenLogs = !this.showHiddenLogs

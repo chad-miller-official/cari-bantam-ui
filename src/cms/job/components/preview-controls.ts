@@ -7,7 +7,7 @@ import CariProgressBar from "../../../components/progress-bar";
 import {css, html, LitElement} from "lit";
 import {customElement, property, query, queryAll, state} from "lit/decorators.js";
 import {styleMap} from "lit/directives/style-map.js";
-import {appendLogs, LogViewer} from "./log-viewer";
+import LogViewer from "./log-viewer";
 
 declare const _csrf: Csrf
 
@@ -124,7 +124,7 @@ export default class PreviewControls extends LitElement {
             this.lastJobExecutionLog = response.logs[0].jobExecutionLog
           }
 
-          appendLogs(this.logViewer, response.logs, false)
+          this.logViewer.appendLogs(response.logs, false)
         })
 
         this.listen()

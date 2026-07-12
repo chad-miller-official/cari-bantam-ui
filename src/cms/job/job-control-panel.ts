@@ -11,7 +11,7 @@ import {Client, IMessage} from "@stomp/stompjs";
 import {waitFor} from "../../util";
 import CariProgressBar from "../../components/progress-bar";
 import CariSpinner from "../../components/spinner";
-import {appendLogs, LogViewer} from "./components/log-viewer";
+import LogViewer from "./components/log-viewer";
 
 declare const _csrf: Csrf
 declare const jobEndpoint: string
@@ -97,7 +97,7 @@ function invokeJob() {
 
         appendJobExecution(jobExecution, jobResponse.started)
 
-        appendLogs(getLogViewer(), [{
+        getLogViewer().appendLogs([{
           formattedMessage: '',
           jobExecutionLog: 0,
           logLevel: 0
@@ -191,7 +191,7 @@ function displayJobExecution(jobHistoryEntry: JQuery<HTMLLIElement>) {
         $outputFileUrl.attr('disabled', 'disabled')
       }
 
-      appendLogs(getLogViewer(), res.data.logs, true)
+      getLogViewer().appendLogs(res.data.logs, true)
     })
 }
 
@@ -342,7 +342,7 @@ $(() => {
           return
         }
 
-        appendLogs(getLogViewer(), response.logs, false)
+        getLogViewer().appendLogs(response.logs, false)
       })
 
       pullLogs().then(() => stompClient.deactivate())
