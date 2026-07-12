@@ -1,47 +1,99 @@
-import {customElement, property, state} from 'lit/decorators.js'
-import {css, html, LitElement} from 'lit'
-import axios, {AxiosError, AxiosResponse} from 'axios'
-import {JobDataRequestResponse, JobResponse} from '../types'
-import {Csrf} from '../../../types'
-import {Client, IMessage} from '@stomp/stompjs'
-import {waitFor} from '../../../util'
+import axios, {AxiosError, AxiosResponse} from "axios";
+import {JobDataRequestResponse, JobResponse} from "../types";
+import {waitFor} from "../../../util";
+import {Csrf} from "../../../types";
+import {Client, IMessage} from "@stomp/stompjs";
+import CariProgressBar from "../../../components/progress-bar";
+import {css, html, LitElement} from "lit";
+import {customElement, property, query, queryAll, state} from "lit/decorators.js";
+import {styleMap} from "lit/directives/style-map.js";
+import LogViewer from "./log-viewer";
 
 declare const _csrf: Csrf
 
+declare const lastJobExecutionLog: number
+
 @customElement('preview-controls')
-export class PreviewControls extends LitElement {
+export default class PreviewControls extends LitElement {
+
   static styles = css`
-    div {
-      display: flex;
-      justify-content: space-around;
+    p {
+      line-height: 2;
     }
-    
-    #indicatorContainer {
-      flex-direction: column;
+
+    .job-preview-green {
+      background-color: #c9f5b7;
+    }
+
+    .job-preview-red {
+      background-color: #f5bcbc;
+    }
+
+    .job-preview-yellow {
+      background-color: #f3f2bc;
+    }
+
+    #logs {
+      display: block;
+      height: 20vh;
+      padding-bottom: 1em;
+    }
+
+    #previewControls {
       align-items: center;
-      gap: 0.5em;
+      display: flex;
+      gap: 2em;
+      justify-content: center;
+    }
+
+    #previewControlsContainer {
+      font-size: smaller;
+      left: 0;
+      margin: auto;
+      position: fixed;
+      right: 0;
+      text-align: center;
+      top: 0;
+      width: 33vw;
+      z-index: 1;
+    }
+
+    #previewControlsContainer > details {
+      background-color: rgba(39, 39, 39, 83%);
+      border-bottom-left-radius: 0.5em;
+      border-bottom-right-radius: 0.5em;
+      color: white;
+      margin: auto;
+      padding: 1em;
+    }
+
+    #previewControlsContainer > details > summary {
+      cursor: pointer;
     }
   `
-
-  @state()
-  judgmentJobExecution: number
-
-  @state()
-  judgmentSent: boolean = false
-
-  @state()
-  percentComplete: number = 0
-
-  @state()
-  judgmentJobExecutionStatus: number = 1
 
   @property({type: Number})
   jobExecution: number
 
-  @property()
+  @property({type: String})
   redirectTo: string
 
-  stompClient: Client
+  @state()
+  jobExecutionStatus = 0
+
+  @state()
+  lastJobExecutionLog = lastJobExecutionLog
+
+  @queryAll('button')
+  judgmentButtons: HTMLButtonElement[]
+
+  @query('#logs')
+  logViewer: LogViewer
+
+  @query('#progressBar')
+  progressBar: CariProgressBar
+
+  private stompClient: Client
 
   constructor() {
     super()
@@ -51,25 +103,41 @@ export class PreviewControls extends LitElement {
       onConnect: () => {
         this.stompClient.subscribe('/topic/job-data', (data: IMessage) => {
           const response = JSON.parse(data.body) as JobDataRequestResponse
-          this.percentComplete = response.percentComplete
 
-          if (response.last) {
-            this.percentComplete = 1
-            this.judgmentJobExecutionStatus = response.jobExecutionStatus
+          this.progressBar.value = Math.round(response.percentComplete * 100)
+
+          if (![1, 5].includes(response.jobExecutionStatus)) {
+            this.jobExecutionStatus = response.jobExecutionStatus
+
+            const finishedMessage = document.createElement('span')
+            let message = 'Import complete. Redirecting to live page...'
+
+            if (this.jobExecutionStatus === 2 || this.jobExecutionStatus === 4) {
+              message = 'Something went wrong!' // XXX TODO FIXME
+            }
+
+            finishedMessage.textContent = message
+            this.progressBar.replaceWith(finishedMessage)
           }
+
+          if (response.logs.length > 0) {
+            this.lastJobExecutionLog = response.logs[0].jobExecutionLog
+          }
+
+          this.logViewer.appendLogs(response.logs, false)
         })
 
         this.listen()
-        .then(() => this.stompClient.deactivate())
-        .then(() => waitFor(3000))
-        .then(() => window.location.href = this.redirectTo)
+          .then(() => this.stompClient.deactivate())
+          .then(() => waitFor(3000))
+          .then(() => window.location.href = this.redirectTo)
       },
       onWebSocketError: error => {
-        // XXX
+        // XXX TODO FIXME
         console.error('WebSocket error', error)
       },
       onStompError: frame => {
-        // XXX
+        // XXX TODO FIXME
         console.error(`Broker reported error: ${frame.headers['message']}`)
         console.error(`Additional details: ${frame.body}`)
       }
@@ -77,12 +145,12 @@ export class PreviewControls extends LitElement {
   }
 
   async listen() {
-    while (this.percentComplete < 1) {
+    while (this.jobExecutionStatus === 1) {
       this.stompClient.publish({
         destination: '/app/pull-job-data',
         body: JSON.stringify({
-          jobExecution: this.judgmentJobExecution,
-          lastJobExecutionLog: 0,
+          jobExecution: this.jobExecution,
+          lastJobExecutionLog: this.lastJobExecutionLog,
         })
       })
 
@@ -95,6 +163,8 @@ export class PreviewControls extends LitElement {
       return
     }
 
+    this.judgmentButtons.forEach(e => e.disabled = true)
+
     const axiosConfig = {
       withCredentials: true,
       xsrfHeaderName: _csrf.headerName,
@@ -102,51 +172,59 @@ export class PreviewControls extends LitElement {
     }
 
     axios.post<JobResponse>(`/api/jobs/${verb.toLowerCase()}-job`, {jobExecution: this.jobExecution}, axiosConfig)
-    .then((res: AxiosResponse<JobResponse>) => {
-      const error = res.data.error
+      .then((res: AxiosResponse<JobResponse>) => {
+        const error = res.data.error
 
-      if (error) {
-        alert(error.message)
-      } else {
-        this.judgmentJobExecution = res.data.jobExecution
-        this.judgmentSent = true
-        this.stompClient.activate()
-      }
-    })
-    .catch((err: AxiosError) => {
-      alert(`Job failed to start. Reason: ${err.message}`)
-    })
+        if (error) {
+          alert(error.message)
+        } else {
+          this.jobExecutionStatus = 1
+          this.stompClient.activate()
+        }
+      })
+      .catch((err: AxiosError) => {
+        alert(`Job failed to start. Reason: ${err.message}`)
+      })
   }
 
   render() {
-    let indicator = null
-
-    if (this.judgmentSent && this.percentComplete < 1) {
-      indicator = html`
-        Working...
-        <cari-progress-bar percentComplete="${this.percentComplete}"></cari-progress-bar>`
-    } else if (this.judgmentJobExecutionStatus > 1) {
-      switch (this.judgmentJobExecutionStatus) {
-        case 2:
-        case 4:
-          indicator = html`<p>Something went wrong!</p>` // XXX
-          break
-        default:
-          indicator = html`<p>Import complete. Redirecting to live page...</p>`
-      }
-    }
+    const visibility = this.jobExecutionStatus > 0 ? 'visible' : 'hidden';
 
     return html`
-      <div>
-        <button @click=${() => this.sendJudgment('Approve')} ?disabled=${this.judgmentSent}>
-          Approve
-        </button>
-        <button @click=${() => this.sendJudgment('Reject')} ?disabled=${this.judgmentSent}>
-          Reject
-        </button>
+      <div id="previewControlsContainer">
+        <details>
+          <summary>This is a preview.</summary>
+          <p>
+            New objects are highlighted in
+            <mark class="job-preview-green">green</mark>
+            .
+            <br/>
+            Modified objects are highlighted in
+            <mark class="job-preview-yellow">yellow</mark>
+            .
+            <br/>
+            Removed objects are highlighted in
+            <mark class="job-preview-red">red</mark>
+            .
+          </p>
+          <p>
+            If these changes look correct, click the Approve button.
+            <br/>
+            Otherwise, click the Reject button.
+          </p>
+
+          <log-viewer id="logs">
+            <slot></slot>
+          </log-viewer>
+
+          <div id="previewControls">
+            <button @click="${() => this.sendJudgment('Approve')}">Approve</button>
+            <cari-progress-bar id="progressBar"
+                               style="${styleMap({visibility})}"></cari-progress-bar>
+            <button @click="${() => this.sendJudgment('Reject')}">Reject</button>
+          </div>
+        </details>
       </div>
-      <div id="indicatorContainer">
-        ${indicator}
-      </div>`
+    `
   }
 }

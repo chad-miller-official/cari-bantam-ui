@@ -8,9 +8,10 @@ import ChangeEvent = JQuery.ChangeEvent;
 import {AestheticBlock} from "./components/aesthetic-block";
 
 declare const apiEndpoint: string
-declare const importStatusMap: object
-declare const jobExecution: number
 declare const totalPages: number
+
+declare const importStatusMap: object | undefined
+declare const jobExecution: number | undefined
 
 enum EraBound {
   After = 1,

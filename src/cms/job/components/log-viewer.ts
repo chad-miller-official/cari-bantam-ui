@@ -1,73 +1,91 @@
 import {customElement, queryAssignedElements, state} from "lit/decorators.js";
 import {css, html, LitElement} from "lit";
-import {LogAppend} from "../events";
+import {JobLog} from "../types";
 
 @customElement('log-viewer')
-export class LogViewer extends LitElement {
+export default class LogViewer extends LitElement {
+
   static styles = css`
     article {
       display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    #logContainer {
+      border: 1px solid #cdcdcd;
+      box-sizing: border-box;
+      display: flex;
       flex-direction: column-reverse;
+      flex-grow: 1;
+      overflow-y: scroll;
       padding: 4px;
+      text-align: start;
       white-space: pre-wrap;
+    }
+
+    #options {
+      margin-bottom: 8px;
     }
   `
 
-  @queryAssignedElements({slot: 'logs'})
-  logItems: HTMLElement[]
-
   @state()
-  showHiddenLogs: boolean = false
+  showHiddenLogs = false
 
-  connectedCallback() {
-    super.connectedCallback()
-    window.addEventListener('logappend', this.handleLogAppend.bind(this))
-    window.addEventListener('toggledebuglogs', this.handleToggleDebugLogs.bind(this))
-  }
+  @queryAssignedElements({flatten: true})
+  logs: HTMLElement[]
 
-  handleLogAppend(event: CustomEvent<LogAppend>) {
-    const logAppendEvent = event.detail
+  appendLogs(logs: JobLog[], reset: boolean) {
+    const newLogs = logs.map(log => {
+      const line = document.createElement('code')
 
-    const newLogs = logAppendEvent.logs.map(log => {
-      const logItem = document.createElement('code')
+      line.textContent = log.formattedMessage
+      line.dataset['logLevel'] = log.logLevel.toString()
 
-      logItem.innerText = log.formattedMessage
-      logItem.hidden = !this.showHiddenLogs && log.logLevel === 1
-      logItem.dataset.logLevel = log.logLevel.toString()
-      logItem.slot = 'logs'
+      if (log.logLevel === 1 && !this.showHiddenLogs) {
+        line.setAttribute('hidden', 'hidden')
+      }
 
-      return logItem
+      line.setAttribute('data-log-level', log.logLevel.toString())
+
+      return line
     })
 
-    const logViewer = document.getElementById(this.id)
-
-    if (logAppendEvent.reset) {
-      logViewer.replaceChildren(...newLogs)
+    if (reset) {
+      this.replaceChildren(...newLogs)
     } else {
-      logViewer.prepend(...newLogs)
+      this.prepend(...newLogs)
     }
   }
 
-  handleToggleDebugLogs() {
+  toggleDebugLogs() {
     this.showHiddenLogs = !this.showHiddenLogs
+    let logs = this.logs
 
-    this.logItems.forEach(child => {
-      const logLevel = parseInt((child as HTMLElement).dataset.logLevel)
+    for (const log of logs) {
+      const logLevel = parseInt(log.dataset['logLevel'])
 
       if (this.showHiddenLogs) {
-        child.removeAttribute('hidden')
+        log.removeAttribute('hidden')
       } else if (logLevel === 1) {
-        child.setAttribute('hidden', '')
+        log.setAttribute('hidden', 'hidden')
       }
-    })
+    }
   }
 
   render() {
     return html`
       <article>
-        <slot name="logs">
-          <code>No previous job history.</code>
-        </slot>
-      </article>`
+        <div id="options">
+          <input type="checkbox" id="showDebugLogs" @change="${this.toggleDebugLogs}">
+          <label for="showDebugLogs">Show Debug Output</label>
+        </div>
+        <div id="logContainer">
+          <slot>
+            <code>No previous job history.</code>
+          </slot>
+        </div>
+      </article>
+    `
   }
 }
