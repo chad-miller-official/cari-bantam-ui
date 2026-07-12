@@ -27,7 +27,6 @@ export type JobHistoryResponse = {
 export type JobDataRequestResponse = {
   jobExecution: number,
   jobExecutionStatus: number,
-  last: boolean,
   logs: JobLog[],
   outputFileUrl?: string,
   percentComplete: number,

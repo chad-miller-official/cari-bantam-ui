@@ -106,7 +106,7 @@ export default class PreviewControls extends LitElement {
 
           this.progressBar.value = Math.round(response.percentComplete * 100)
 
-          if (response.last) {
+          if (![1, 5].includes(response.jobExecutionStatus)) {
             this.jobExecutionStatus = response.jobExecutionStatus
 
             const finishedMessage = document.createElement('span')

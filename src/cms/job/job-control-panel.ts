@@ -308,7 +308,7 @@ $(() => {
 
         (progressBarContainer.children('cari-progress-bar').get(0) as CariProgressBar).value = response.percentComplete
 
-        if (response.last) {
+        if (response.jobExecutionStatus != 1) {
           _lastJobExecutionStatus = response.jobExecutionStatus
 
           if (response.jobExecutionStatus === 5) {
