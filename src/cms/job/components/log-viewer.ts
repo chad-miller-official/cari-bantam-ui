@@ -2,10 +2,6 @@ import {customElement, queryAssignedElements, state} from "lit/decorators.js";
 import {css, html, LitElement} from "lit";
 import {JobLog} from "../types";
 
-export function clearLogs(logViewer: LogViewer) {
-  appendLogs(logViewer, [], true)
-}
-
 export function appendLogs(logViewer: LogViewer, logs: JobLog[], reset: boolean) {
   const newLogs = logs.map(log => {
     const line = document.createElement('code')

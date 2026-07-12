@@ -159,11 +159,11 @@ export default class PreviewControls extends LitElement {
   }
 
   sendJudgment(verb: string) {
-    this.judgmentButtons.forEach(e => e.disabled = true)
-
     if (!confirm(`${verb} changes?`)) {
       return
     }
+
+    this.judgmentButtons.forEach(e => e.disabled = true)
 
     const axiosConfig = {
       withCredentials: true,

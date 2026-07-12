@@ -11,7 +11,7 @@ import {Client, IMessage} from "@stomp/stompjs";
 import {waitFor} from "../../util";
 import CariProgressBar from "../../components/progress-bar";
 import CariSpinner from "../../components/spinner";
-import {appendLogs, clearLogs, LogViewer} from "./components/log-viewer";
+import {appendLogs, LogViewer} from "./components/log-viewer";
 
 declare const _csrf: Csrf
 declare const jobEndpoint: string
@@ -96,7 +96,12 @@ function invokeJob() {
         selectedJobExecution = jobExecution
 
         appendJobExecution(jobExecution, jobResponse.started)
-        clearLogs(getLogViewer())
+
+        appendLogs(getLogViewer(), [{
+          formattedMessage: '',
+          jobExecutionLog: 0,
+          logLevel: 0
+        }], true)
 
         $('#outputFileUrl')
           .attr('href', '#')
