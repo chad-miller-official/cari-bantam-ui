@@ -332,6 +332,7 @@ $(() => {
     },
     responseBody: 'json',
     history: false,
+    status: '#aestheticListSpinner',
   })
 
   infScroll.on('load', handleApiResponse)
