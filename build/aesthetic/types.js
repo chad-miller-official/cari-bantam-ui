@@ -1,1 +1,1 @@
-(()=>{"use strict";var e;(function(e){e.Attachment="Attachment",e.Channel="Channel",e.Image="Image",e.Link="Link",e.Media="Media",e.Text="Text"})(e||(e={}))})();
+(()=>{"use strict";var e;(function(e){e.Text="Text",e.Image="Image",e.Link="Link",e.Attachment="Attachment",e.Embed="Embed",e.Channel="Channel"})(e||(e={}))})();

@@ -1,91 +1,95 @@
-import {ArenaApiResponse, BlockClass, GalleryContent} from "./types";
+import {ArenaApiResponse, ArenaBlock, ArenaBlockType,} from "./types";
 import InfiniteScroll from "infinite-scroll";
 import {CariModal} from "../components/modal";
 
-declare const mediaSourceUrl: string
+declare const apiEndpoint: string
 
 const MAX_PAGE_SIZE = 20
 
 let totalPages = 1
 let loadedLast = false
 
-let blocks: GalleryContent[] = []
+let blocks: ArenaBlock[] = []
 let pagesLoaded = 0
 
 let selectedIndex: number
 
 function openBlock() {
   const block = blocks[selectedIndex]
-  let media = $('<p>').text('This media type is not supported.')
+  let media: JQuery
 
-  switch (block.class) {
-    case BlockClass.Link:
+  switch (block.type) {
+    case ArenaBlockType.Link:
       if (block.source.url.startsWith('https://')) {
         media = $('<iframe>')
-        .attr('src', block.source.url)
-        .addClass('website-media')
+          .attr('src', block.source.url)
+          .addClass('website-media')
       } else {
-        const linkPreview = $('<img>')
-        .attr('src', block.image.display.url)
-        .attr('alt', block.description)
-
         media = $('<a>')
-        .attr('href', block.source.url)
-        .attr('target', 'blank')
-        .append(linkPreview)
+          .attr('href', block.source.url)
+          .attr('target', 'blank')
+          .append(
+            $('<img>')
+              .attr('src', block.image.medium.src)
+              .attr('alt', block.image.altText)
+          )
       }
 
       break
-    case BlockClass.Image:
+    case ArenaBlockType.Image:
       media = $('<a>')
-      .attr('href', block.image.original.url)
-      .attr('target', '_blank')
-      .append(
+        .attr('href', block.image.large.src)
+        .attr('target', '_blank')
+        .append(
           $('<img>')
-          .attr('src', block.image.display.url)
-          .attr('alt', block.description)
-      )
+            .attr('src', block.image.medium.src)
+            .attr('alt', block.image.altText)
+        )
 
       break
-    case BlockClass.Attachment:
-      const contentType = block.attachment.content_type
+    case ArenaBlockType.Attachment:
+      const contentType = block.attachment.contentType
 
       if (contentType.split('/')[0] === 'video') {
-        const source = $('<source>')
-        .attr('src', block.attachment.url)
-        .text('Your browser does not support video playback.')
         media = $('<video autoplay controls muted>')
-        .append(source)
+          .append(
+            $('<source>')
+              .attr('src', block.attachment.url)
+              .text('Your browser does not support video playback.')
+          )
       } else if (contentType === 'application/pdf') {
         media = $('<object>')
-        .attr('data', block.attachment.url)
-        .attr('type', contentType)
-        .addClass('attachment-media')
+          .attr('data', block.attachment.url)
+          .attr('type', contentType)
+          .addClass('attachment-media')
       }
 
       break
-    case BlockClass.Media:
+    case ArenaBlockType.Embed:
       media = $(block.embed.html)
       break
-    case BlockClass.Text:
+    case ArenaBlockType.Text:
       media = $('<div>')
-      .addClass('text-media')
-      .html(block.content_html)
+        .addClass('text-media')
+        .html(block.content.html)
 
+      break
+    default:
+      media = $('<p>').text('This media type is not supported.')
       break
   }
 
   $('#aestheticGallerySelection > .media').empty().append(media)
   $('#aestheticGallerySelection > .sidebar .title').text(block.title || '(no title)')
-  $('#aestheticGallerySelection > .sidebar .description').html(block.description_html || '(no description)')
+  $('#aestheticGallerySelection > .sidebar .description').html(block.description.html || '(no description)')
 
   const sidebarWebsite = $('#aestheticGallerySelection > .sidebar .website')
 
-  if (block.class === BlockClass.Link) {
+  if (block.type === ArenaBlockType.Link) {
     sidebarWebsite
-    .css('display', 'block')
-    .children('a')
-    .attr('href', block.source.url)
+      .css('display', 'block')
+      .children('a')
+      .attr('href', block.source.url)
 
   } else {
     sidebarWebsite.css('display', 'none')
@@ -109,37 +113,37 @@ function openBlock() {
   ($('cari-modal').get(0) as CariModal).showModal()
 }
 
-function buildBlock(block: GalleryContent, idx: number): JQuery<HTMLElement> {
+function buildBlock(block: ArenaBlock, idx: number): JQuery<HTMLElement> {
   const blockElement = $('<div>')
-  .addClass('aesthetic-gallery-block')
-  .data('index', (idx + (MAX_PAGE_SIZE * pagesLoaded)))
-  .on('click', function () {
-    selectedIndex = $(this).data('index')
-    openBlock()
-  })
+    .addClass('aesthetic-gallery-block')
+    .data('index', (idx + (MAX_PAGE_SIZE * pagesLoaded)))
+    .on('click', function () {
+      selectedIndex = $(this).data('index')
+      openBlock()
+    })
 
   let content: JQuery<HTMLElement>
 
   if (
-      block.class === BlockClass.Link ||
-      block.class === BlockClass.Image ||
-      block.class === BlockClass.Media ||
-      (block.class === BlockClass.Attachment && block.image)
+    block.type === ArenaBlockType.Link ||
+    block.type === ArenaBlockType.Image ||
+    block.type === ArenaBlockType.Embed ||
+    (block.type === ArenaBlockType.Attachment && block.image)
   ) {
     content = $('<img>').addClass('image-preview')
-    .attr('src', block.image.square.url)
-    .attr('alt', block.title)
+      .attr('src', block.image.square.src)
+      .attr('alt', block.title)
   } else {
-    content = block.class === BlockClass.Text
-        ? $('<p>').addClass('text-preview').text(block.content)
-        : $('<h3>').text('No Preview')
+    content = block.type === ArenaBlockType.Text
+      ? $('<p>').addClass('text-preview').text(block.content.plain)
+      : $('<h3>').text('No Preview')
   }
 
   return blockElement.append(content)
 }
 
 function handleArenaApiResponse(res: ArenaApiResponse) {
-  const resToShow = res.contents.filter(block => block.class !== BlockClass.Channel)
+  const resToShow = res.data.filter(block => block.type !== 'Channel')
   $('#aestheticGallery').append(...resToShow.map((block, idx) => buildBlock(block, idx)))
   blocks.push(...resToShow)
   pagesLoaded += 1
@@ -169,7 +173,7 @@ $(() => {
         const infScroll = InfiniteScroll.data('#aestheticGallery')
 
         if (infScroll.pageIndex - 1 < totalPages) {
-          return `${mediaSourceUrl}?page=${infScroll.pageIndex + 1}&per=${MAX_PAGE_SIZE}`
+          return `${apiEndpoint}?page=${infScroll.pageIndex + 1}&per=${MAX_PAGE_SIZE}`
         }
       },
       responseBody: 'json',
@@ -179,8 +183,8 @@ $(() => {
       status: '.spinner',
     })
 
-    $.get(mediaSourceUrl, data, (res: ArenaApiResponse) => {
-      totalPages = Math.ceil(res.length / MAX_PAGE_SIZE)
+    $.get(apiEndpoint, data, (res: ArenaApiResponse) => {
+      totalPages = res.meta.totalPages
       handleArenaApiResponse(res)
 
       if (totalPages <= 1) {
